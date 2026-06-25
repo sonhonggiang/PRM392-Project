@@ -200,49 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               
-              // TEST ROLES (For development)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.amber.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.amber.withOpacity(0.3)),
-                ),
-                child: Column(
-                  children: [
-                    const Text('Test Roles (Đăng nhập thật qua API)', style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.bold, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        ActionChip(
-                          label: const Text('Guest (Mock)', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _handleMockLogin(UserModel.mockGuest),
-                        ),
-                        ActionChip(
-                          label: const Text('User (Real)', style: TextStyle(fontSize: 11)),
-                          onPressed: () {
-                            _emailController.text = 'user@origami.com';
-                            _passwordController.text = '123456';
-                            _handleRealLogin();
-                          },
-                        ),
-                        ActionChip(
-                          label: const Text('Admin (Real)', style: TextStyle(fontSize: 11)),
-                          onPressed: () {
-                            _emailController.text = 'admin@origami.com';
-                            _passwordController.text = '123456';
-                            _handleRealLogin();
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+
               
               // OR divider
               Row(
