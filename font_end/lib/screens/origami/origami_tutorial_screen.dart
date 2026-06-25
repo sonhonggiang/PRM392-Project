@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import 'tutorial_success_screen.dart';
 
 class OrigamiTutorialScreen extends StatefulWidget {
   const OrigamiTutorialScreen({super.key});
@@ -167,7 +168,10 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
                                   _currentStep++;
                                 });
                               } else {
-                                // Navigate to Complete Screen S-18
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const TutorialSuccessScreen()),
+                                );
                               }
                             },
                             child: Text(_currentStep < _totalSteps ? 'Tiếp →' : 'Hoàn thành 🏆'),

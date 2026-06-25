@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="origami_app"
+        android:label="appvipprodunglathich_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

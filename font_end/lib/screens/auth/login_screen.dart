@@ -5,6 +5,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../home/home_screen.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -105,7 +106,11 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                    );
+                  },
                   style: TextButton.styleFrom(
                     foregroundColor: AppTheme.teal,
                   ),
@@ -140,15 +145,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         ActionChip(
                           label: const Text('Guest', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _handleLogi  n(UserModel.mockGuest),
+                          onPressed: () => _handleLogin(UserModel.mockGuest),
                         ),
                         ActionChip(
                           label: const Text('User', style: TextStyle(fontSize: 11)),
                           onPressed: () => _handleLogin(UserModel.mockUser),
-                        ),
-                        ActionChip(
-                          label: const Text('Creator', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _handleLogin(UserModel.mockCreator),
                         ),
                         ActionChip(
                           label: const Text('Admin', style: TextStyle(fontSize: 11)),

@@ -4,7 +4,7 @@ enum UserRole {
   creator,
   admin,
 }
-
+// nhớ vô đây mà phân lại quyền cho các người dùng
 class UserModel {
   final String id;
   final String email;
@@ -24,7 +24,7 @@ class UserModel {
   static final UserModel mockAdmin = UserModel(
     id: 'admin_1',
     email: 'admin@origami.com',
-    displayName: 'Admin Origami',
+    displayName: 'Admin trang gấp giấy',
     role: UserRole.admin,
   );
 
@@ -45,7 +45,7 @@ class UserModel {
   static final UserModel mockGuest = UserModel(
     id: 'guest_0',
     email: '',
-    displayName: 'Khách',
+    displayName: '?????',
     role: UserRole.guest,
   );
 }

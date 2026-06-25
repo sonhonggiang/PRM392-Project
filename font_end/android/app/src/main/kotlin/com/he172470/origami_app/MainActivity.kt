@@ -1,4 +1,4 @@
-package com.he182507.origami_app
+package com.he172470.origami_app
 
 import io.flutter.embedding.android.FlutterActivity
 
