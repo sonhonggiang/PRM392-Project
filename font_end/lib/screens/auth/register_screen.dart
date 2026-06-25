@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/services/api_service.dart';
 import 'otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -10,12 +13,92 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  void _handleRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const OtpScreen()),
-    );
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Luồng đăng ký thực tế kết nối với backend
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng điền đầy đủ thông tin đăng ký!'),
+          backgroundColor: AppTheme.red,
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mật khẩu phải dài tối thiểu 6 ký tự!'),
+          backgroundColor: AppTheme.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Gọi API Đăng ký tài khoản
+      final registerSuccess = await context.read<AuthProvider>().register(email, password, name);
+
+      if (mounted) {
+        if (registerSuccess) {
+          // 2. Tự động gửi mã OTP xác nhận về email sau khi đăng ký thành công
+          await ApiService.sendOTP(email);
+          
+          if (mounted) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tạo tài khoản thành công! Một mã OTP xác nhận đã được gửi.'),
+                backgroundColor: AppTheme.teal,
+              ),
+            );
+            // 3. Chuyển sang màn hình OTP
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => OtpScreen(email: email)),
+            );
+          }
+        } else {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng ký không thành công! Email có thể đã được sử dụng.'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi trong quá trình đăng ký: $e'),
+            backgroundColor: AppTheme.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -60,9 +143,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
-                decoration: InputDecoration(
+                controller: _nameController,
+                decoration: const InputDecoration(
                   hintText: 'Nhập họ tên của bạn',
-                  prefixIcon: const Padding(
+                  prefixIcon: Padding(
                     padding: EdgeInsets.all(12.0),
                     child: Text('👤', style: TextStyle(fontSize: 16)),
                   ),
@@ -78,9 +162,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
-                decoration: InputDecoration(
+                controller: _emailController,
+                decoration: const InputDecoration(
                   hintText: 'you@email.com',
-                  prefixIcon: const Padding(
+                  prefixIcon: Padding(
                     padding: EdgeInsets.all(12.0),
                     child: Text('📧', style: TextStyle(fontSize: 16)),
                   ),
@@ -96,6 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
+                controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   hintText: 'Tối thiểu 6 ký tự',
@@ -117,8 +203,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               
               // Register Button
               FilledButton(
-                onPressed: _handleRegister,
-                child: const Text('Đăng ký'),
+                onPressed: _isLoading ? null : _handleRegister,
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Đăng ký'),
               ),
               const SizedBox(height: 16),
               
@@ -143,7 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               
               const SizedBox(height: 32),
-              // Register link
+              // Back to Login link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

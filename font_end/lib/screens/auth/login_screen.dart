@@ -15,13 +15,79 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  void _handleLogin(UserModel user) {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Đăng nhập nhanh cho việc kiểm thử UI tĩnh (Guest)
+  void _handleMockLogin(UserModel user) {
     context.read<AuthProvider>().loginAs(user);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
+  }
+
+  // Đăng nhập thực tế kết nối với API Backend
+  Future<void> _handleRealLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng điền đầy đủ email và mật khẩu!'),
+          backgroundColor: AppTheme.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await context.read<AuthProvider>().login(email, password);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng nhập thành công! 🎉'),
+              backgroundColor: AppTheme.teal,
+            ),
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng nhập thất bại! Email hoặc mật khẩu không chính xác.'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể kết nối đến máy chủ: $e'),
+            backgroundColor: AppTheme.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -66,9 +132,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
-                decoration: InputDecoration(
+                controller: _emailController,
+                decoration: const InputDecoration(
                   hintText: 'you@email.com',
-                  prefixIcon: const Padding(
+                  prefixIcon: Padding(
                     padding: EdgeInsets.all(12.0),
                     child: Text('📧', style: TextStyle(fontSize: 16)),
                   ),
@@ -84,6 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
+                controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   hintText: '••••••••',
@@ -121,8 +189,14 @@ class _LoginScreenState extends State<LoginScreen> {
               
               // Login Button
               FilledButton(
-                onPressed: () => _handleLogin(UserModel.mockUser),
-                child: const Text('Đăng nhập'),
+                onPressed: _isLoading ? null : _handleRealLogin,
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Đăng nhập'),
               ),
               const SizedBox(height: 16),
               
@@ -136,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Text('Test Roles', style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.bold, fontSize: 12)),
+                    const Text('Test Roles (Đăng nhập thật qua API)', style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.bold, fontSize: 12)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -144,16 +218,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: WrapAlignment.center,
                       children: [
                         ActionChip(
-                          label: const Text('Guest', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _handleLogin(UserModel.mockGuest),
+                          label: const Text('Guest (Mock)', style: TextStyle(fontSize: 11)),
+                          onPressed: () => _handleMockLogin(UserModel.mockGuest),
                         ),
                         ActionChip(
-                          label: const Text('User', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _handleLogin(UserModel.mockUser),
+                          label: const Text('User (Real)', style: TextStyle(fontSize: 11)),
+                          onPressed: () {
+                            _emailController.text = 'user@origami.com';
+                            _passwordController.text = '123456';
+                            _handleRealLogin();
+                          },
                         ),
                         ActionChip(
-                          label: const Text('Admin', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _handleLogin(UserModel.mockAdmin),
+                          label: const Text('Admin (Real)', style: TextStyle(fontSize: 11)),
+                          onPressed: () {
+                            _emailController.text = 'admin@origami.com';
+                            _passwordController.text = '123456';
+                            _handleRealLogin();
+                          },
                         ),
                       ],
                     ),
@@ -175,9 +257,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Google Button
+              // Google Button (Chạy qua User real)
               OutlinedButton.icon(
-                onPressed: () => _handleLogin(UserModel.mockUser),
+                onPressed: () {
+                  _emailController.text = 'user@origami.com';
+                  _passwordController.text = '123456';
+                  _handleRealLogin();
+                },
                 icon: const Text('🌐', style: TextStyle(fontSize: 18)),
                 label: const Text('Tiếp tục với Google'),
               ),

@@ -1,12 +1,120 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
-import 'origami_tutorial_screen.dart'; // We'll create this next
+import '../../core/services/api_service.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../models/user_model.dart';
+import 'origami_tutorial_screen.dart';
 
-class OrigamiDetailScreen extends StatelessWidget {
-  const OrigamiDetailScreen({super.key});
+class OrigamiDetailScreen extends StatefulWidget {
+  final int origamiId;
+  final bool isDailyChallenge;
+  const OrigamiDetailScreen({
+    super.key,
+    required this.origamiId,
+    this.isDailyChallenge = false,
+  });
+
+  @override
+  State<OrigamiDetailScreen> createState() => _OrigamiDetailScreenState();
+}
+
+class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
+  Map<String, dynamic>? _detailData;
+  bool _isLoading = true;
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadModelDetail();
+  }
+
+  // Tải chi tiết mẫu Origami và kiểm tra trạng thái yêu thích
+  Future<void> _loadModelDetail() async {
+    setState(() => _isLoading = true);
+    try {
+      // 1. Tải chi tiết mẫu và các bước
+      final detail = await ApiService.getOrigamiDetail(widget.origamiId);
+      
+      // 2. Kiểm tra xem mẫu này đã được yêu thích chưa
+      final auth = context.read<AuthProvider>();
+      bool isFav = false;
+      if (auth.currentUser.role != UserRole.guest) {
+        final favoritesList = await ApiService.getFavorites();
+        isFav = favoritesList.any((item) => item['id'] == widget.origamiId);
+      }
+
+      setState(() {
+        _detailData = detail;
+        _isFavorite = isFav;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Lỗi tải chi tiết Origami: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Toggle favorite qua API
+  Future<void> _handleFavoriteToggle() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.currentUser.role == UserRole.guest) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để lưu vào danh sách yêu thích!'),
+          backgroundColor: AppTheme.amber,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final success = await ApiService.toggleFavorite(widget.origamiId);
+      setState(() {
+        _isFavorite = success;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Đã thêm vào yêu thích! ❤️' : 'Đã xóa khỏi yêu thích.'),
+            backgroundColor: success ? AppTheme.teal : AppTheme.indigoMid,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Lỗi toggle yêu thích: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppTheme.bg,
+        body: Center(child: CircularProgressIndicator(color: AppTheme.teal)),
+      );
+    }
+
+    if (_detailData == null) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: AppTheme.white, elevation: 0),
+        body: const Center(child: Text('Không tìm thấy thông tin mẫu Origami này!', style: TextStyle(color: AppTheme.muted))),
+      );
+    }
+
+    final name = _detailData!['name'] ?? '';
+    final emoji = _detailData!['emoji'] ?? '🦢';
+    final difficulty = _detailData!['difficulty'] ?? 'Dễ';
+    final time = '${_detailData!['estimated_time'] ?? _detailData!['estimatedTime'] ?? 10} phút';
+    final paperSize = _detailData!['paper_size'] ?? _detailData!['paperSize'] ?? '15x15 cm';
+    final paperType = _detailData!['paper_type'] ?? _detailData!['paperType'] ?? 'Washi';
+    final rating = (_detailData!['rating'] ?? 0.0).toString();
+    final category = _detailData!['category_name'] ?? 'Mẫu gấp';
+    final steps = _detailData!['steps'] as List<dynamic>? ?? [];
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       extendBodyBehindAppBar: true,
@@ -29,18 +137,11 @@ class OrigamiDetailScreen extends StatelessWidget {
             child: CircleAvatar(
               backgroundColor: Colors.white.withOpacity(0.8),
               child: IconButton(
-                icon: const Icon(Icons.favorite_border, color: AppTheme.red),
-                onPressed: () {},
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.8),
-              child: IconButton(
-                icon: const Icon(Icons.share_outlined, color: AppTheme.indigo),
-                onPressed: () {},
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: AppTheme.red,
+                ),
+                onPressed: _handleFavoriteToggle,
               ),
             ),
           ),
@@ -49,11 +150,11 @@ class OrigamiDetailScreen extends StatelessWidget {
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100), // Space for bottom button
+            padding: const EdgeInsets.only(bottom: 100), // Khoảng trống cho nút bắt đầu gấp cố định ở đáy
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image Header (Mock placeholder)
+                // Image Header Gradient
                 Container(
                   height: 300,
                   width: double.infinity,
@@ -64,12 +165,12 @@ class OrigamiDetailScreen extends StatelessWidget {
                       end: Alignment.bottomCenter,
                     ),
                   ),
-                  child: const Center(
-                    child: Text('🦢', style: TextStyle(fontSize: 120)),
+                  child: Center(
+                    child: Text(emoji, style: const TextStyle(fontSize: 120)),
                   ),
                 ),
                 
-                // Content
+                // Nửa dưới chứa Content
                 Transform.translate(
                   offset: const Offset(0, -24),
                   child: Container(
@@ -86,10 +187,10 @@ class OrigamiDetailScreen extends StatelessWidget {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Hạc giấy Nhật Bản',
-                                  style: TextStyle(
+                                  name,
+                                  style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w800,
                                     color: AppTheme.indigo,
@@ -102,13 +203,13 @@ class OrigamiDetailScreen extends StatelessWidget {
                                   color: AppTheme.amber.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.star, color: AppTheme.amber, size: 16),
-                                    SizedBox(width: 4),
+                                    const Icon(Icons.star, color: AppTheme.amber, size: 16),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      '4.7',
-                                      style: TextStyle(
+                                      rating,
+                                      style: const TextStyle(
                                         color: AppTheme.amber,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -120,69 +221,67 @@ class OrigamiDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           
-                          // Chips
+                          // Chips Tags
                           Row(
                             children: [
-                              _buildTagChip('🐦 Động vật', AppTheme.indigo),
+                              _buildTagChip('📁 $category', AppTheme.indigo),
                               const SizedBox(width: 8),
-                              _buildTagChip('⭐⭐⭐ Trung cấp', AppTheme.amber),
+                              _buildTagChip('⭐️ $difficulty', AppTheme.amber),
                               const SizedBox(width: 8),
-                              _buildTagChip('⏱️ 25 phút', AppTheme.teal),
+                              _buildTagChip('⏱️ $time', AppTheme.teal),
                             ],
                           ),
                           const SizedBox(height: 24),
                           
-                          // Description
-                          const Text(
-                            'Hạc giấy (Orizuru) là một trong những mẫu Origami cổ điển và phổ biến nhất, tượng trưng cho niềm hy vọng và sự an lành.',
-                            style: TextStyle(color: AppTheme.muted, height: 1.5),
+                          // Mô tả
+                          Text(
+                            'Mẫu gấp Origami "$name" thuộc thể loại $category với độ khó cấp độ $difficulty. Hãy làm theo hướng dẫn từng bước chi tiết của chúng tôi để tự hoàn thiện tác phẩm bằng giấy tuyệt đẹp của riêng bạn!',
+                            style: const TextStyle(color: AppTheme.muted, height: 1.5),
                           ),
                           const SizedBox(height: 24),
                           
-                          // Info Cards
+                          // Info Cards thông số giấy
                           Row(
                             children: [
-                              Expanded(child: _buildInfoCard('📐 Cỡ giấy', '20×20cm')),
+                              Expanded(child: _buildInfoCard('📐 Cỡ giấy', paperSize)),
                               const SizedBox(width: 12),
-                              Expanded(child: _buildInfoCard('📄 Loại giấy', 'Washi')),
+                              Expanded(child: _buildInfoCard('📄 Loại giấy', paperType)),
                               const SizedBox(width: 12),
-                              Expanded(child: _buildInfoCard('🎨 Màu sắc', 'Đỏ/Trắng')),
+                              Expanded(child: _buildInfoCard('🎨 Màu sắc', 'Tự do')),
                             ],
                           ),
                           const SizedBox(height: 32),
                           
-                          // Steps Preview
+                          // Sơ lược các bước
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                '18 bước hướng dẫn',
-                                style: TextStyle(
+                              Text(
+                                '${steps.length} bước hướng dẫn',
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
                                   color: AppTheme.indigo,
                                 ),
                               ),
-                              TextButton(
-                                onPressed: () {},
-                                style: TextButton.styleFrom(foregroundColor: AppTheme.teal),
-                                child: const Text('Xem tất cả'),
-                              )
                             ],
                           ),
                           const SizedBox(height: 12),
                           
-                          // Step horizontal list
-                          SizedBox(
-                            height: 120,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: 4,
-                              itemBuilder: (context, index) {
-                                return _buildStepPreview(index + 1);
-                              },
-                            ),
-                          ),
+                          // Danh sách ngang xem trước các bước
+                          steps.isEmpty
+                              ? const Text('Chưa có danh sách bước gấp cụ thể.', style: TextStyle(color: AppTheme.muted))
+                              : SizedBox(
+                                  height: 120,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: steps.length,
+                                    itemBuilder: (context, index) {
+                                      final st = steps[index];
+                                      return _buildStepPreview(index + 1, emoji);
+                                    },
+                                  ),
+                                ),
                         ],
                       ),
                     ),
@@ -212,7 +311,13 @@ class OrigamiDetailScreen extends StatelessWidget {
               child: FilledButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const OrigamiTutorialScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => OrigamiTutorialScreen(
+                        origamiId: widget.origamiId,
+                        steps: steps,
+                        isDailyChallenge: widget.isDailyChallenge,
+                      ),
+                    ),
                   );
                 },
                 style: FilledButton.styleFrom(
@@ -254,13 +359,19 @@ class OrigamiDetailScreen extends StatelessWidget {
         children: [
           Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.muted)),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+          Text(
+            value, 
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStepPreview(int stepNum) {
+  Widget _buildStepPreview(int stepNum, String modelEmoji) {
     return Container(
       width: 100,
       margin: const EdgeInsets.only(right: 12),
@@ -274,7 +385,7 @@ class OrigamiDetailScreen extends StatelessWidget {
         children: [
           Text('Bước $stepNum', style: const TextStyle(fontSize: 10, color: AppTheme.muted, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('🦢', style: TextStyle(fontSize: 32)),
+          Text(modelEmoji, style: const TextStyle(fontSize: 32)),
         ],
       ),
     );

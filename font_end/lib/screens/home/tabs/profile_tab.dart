@@ -4,45 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 import '../../../models/user_model.dart';
 import '../analytics_badges_screen.dart';
 import '../leaderboard_screen.dart';
 import '../admin_approval_screen.dart';
-
-// ─── Dữ liệu huy hiệu ───────────────────────────────────────────────────────
-class BadgeData {
-  final String emoji;
-  final String name;
-  final String description;
-  final Color color;
-  final bool earned;
-
-  const BadgeData({
-    required this.emoji,
-    required this.name,
-    required this.description,
-    required this.color,
-    required this.earned,
-  });
-}
-
-const List<BadgeData> allBadges = [
-  BadgeData(emoji: '🌱', name: 'Người mới', description: 'Hoàn thành mẫu đầu tiên', color: AppTheme.green, earned: true),
-  BadgeData(emoji: '🦢', name: 'Fan Hạc giấy', description: 'Gấp hạc giấy 5 lần', color: AppTheme.indigo, earned: true),
-  BadgeData(emoji: '🔥', name: 'Chuỗi 7 ngày', description: 'Học liên tục 7 ngày', color: AppTheme.red, earned: true),
-  BadgeData(emoji: '⭐', name: 'Người học chăm chỉ', description: 'Hoàn thành 10 mẫu', color: AppTheme.amber, earned: false),
-  BadgeData(emoji: '🏆', name: 'Bậc thầy Origami', description: 'Hoàn thành 50 mẫu', color: AppTheme.amber, earned: false),
-  BadgeData(emoji: '🐲', name: 'Chinh phục Rồng', description: 'Hoàn thành Rồng Lửa', color: AppTheme.teal, earned: false),
-];
-
-// ─── Dữ liệu lịch sử học ────────────────────────────────────────────────────
-const List<Map<String, dynamic>> _historyItems = [
-  {'name': 'Hạc giấy Nhật Bản', 'emoji': '🦢', 'date': '23/06/2026', 'status': 'Hoàn thành', 'done': true},
-  {'name': 'Trái tim đôi', 'emoji': '❤️', 'date': '21/06/2026', 'status': 'Hoàn thành', 'done': true},
-  {'name': 'Con Ếch nhảy', 'emoji': '🐸', 'date': '18/06/2026', 'status': 'Hoàn thành', 'done': true},
-  {'name': 'Rồng Lửa', 'emoji': '🐲', 'date': '15/06/2026', 'status': 'Đang học (Bước 5/30)', 'done': false},
-  {'name': 'Máy Bay chiến đấu', 'emoji': '✈️', 'date': '10/06/2026', 'status': 'Hoàn thành', 'done': true},
-];
 
 // ─── Profile Tab chính ───────────────────────────────────────────────────────
 class ProfileTab extends StatefulWidget {
@@ -55,6 +21,57 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
   Uint8List? _avatarBytes;
   final ImagePicker _picker = ImagePicker();
+
+  // Dữ liệu động tải từ API
+  int _completedCount = 0;
+  int _favoritesCount = 0;
+  int _badgesCount = 0;
+  int _streakCount = 0;
+  List<dynamic> _historyItems = [];
+  List<dynamic> _allBadges = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  // Tải dữ liệu thống kê, lịch sử, huy hiệu của User
+  Future<void> _loadProfileData() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.currentUser.role == UserRole.guest) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Tải tiến trình và tính số lượng hoàn thành
+      final progressList = await ApiService.getProgress();
+      _historyItems = progressList;
+      _completedCount = progressList.where((p) => p['is_completed'] == 1 || p['isCompleted'] == true).length;
+
+      // 2. Tải danh sách yêu thích
+      final favoritesList = await ApiService.getFavorites();
+      _favoritesCount = favoritesList.length;
+
+      // 3. Tải danh sách huy hiệu và đếm huy hiệu đã mở khóa
+      final badgesList = await ApiService.getUserBadges();
+      _allBadges = badgesList;
+      _badgesCount = badgesList.where((b) => b['earned'] == true).length;
+
+      // 4. Cập nhật chuỗi Streak từ model user (hoặc API)
+      _streakCount = auth.currentUser.streakCount;
+    } catch (e) {
+      print('Lỗi tải thông tin Profile: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   Future<void> _pickAvatar() async {
     try {
@@ -69,6 +86,7 @@ class _ProfileTabState extends State<ProfileTab> {
       setState(() {
         _avatarBytes = bytes;
       });
+      // Trong môi trường production, ta có thể upload ảnh base64 này lên API để cập nhật avatar_url
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,201 +142,213 @@ class _ProfileTabState extends State<ProfileTab> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // ── Header gradient ──────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppTheme.indigo, AppTheme.indigoMid],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return RefreshIndicator(
+      onRefresh: _loadProfileData,
+      color: AppTheme.teal,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            // ── Header gradient ──────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.indigo, AppTheme.indigoMid],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
               ),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-            ),
-            child: Column(
-              children: [
-                // Avatar (nhấn để chọn ảnh)
-                Stack(
-                  children: [
-                    GestureDetector(
-                      onTap: _pickAvatar,
-                      child: Container(
-                        width: 88,
-                        height: 88,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          color: Colors.white.withOpacity(0.15),
-                        ),
-                        child: ClipOval(
-                          child: _avatarBytes != null
-                              ? Image.memory(
-                                  _avatarBytes!,
-                                  fit: BoxFit.cover,
-                                  width: 88,
-                                  height: 88,
-                                )
-                              : const Center(
-                                  child: Text('👤', style: TextStyle(fontSize: 46))),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
+              child: Column(
+                children: [
+                  // Avatar
+                  Stack(
+                    children: [
+                      GestureDetector(
                         onTap: _pickAvatar,
                         child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(color: AppTheme.teal, shape: BoxShape.circle),
-                          child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                            color: Colors.white.withOpacity(0.15),
+                          ),
+                          child: ClipOval(
+                            child: _avatarBytes != null
+                                ? Image.memory(
+                                    _avatarBytes!,
+                                    fit: BoxFit.cover,
+                                    width: 88,
+                                    height: 88,
+                                  )
+                                : const Center(
+                                    child: Text('👤', style: TextStyle(fontSize: 46))),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(user.displayName,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 4),
-                Text(user.email,
-                  style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 13)),
-                const SizedBox(height: 10),
-
-                // Role badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    _roleLabel(user.role),
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-
-                // ── Thống kê ──────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.border),
-                    boxShadow: const [BoxShadow(color: Color(0x0A1A2F6E), blurRadius: 10, offset: Offset(0, 4))],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildStat('12', 'Đã gấp', Icons.auto_awesome, AppTheme.indigo),
-                      _buildDivider(),
-                      _buildStat('5', 'Yêu thích', Icons.favorite, AppTheme.red),
-                      _buildDivider(),
-                      GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsBadgesScreen())),
-                        child: _buildStat('3', 'Huy hiệu', Icons.emoji_events, AppTheme.amber),
-                      ),
-                      _buildDivider(),
-                      GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())),
-                        child: _buildStat('7', 'Ngày liên tiếp', Icons.local_fire_department, AppTheme.teal),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _pickAvatar,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(color: AppTheme.teal, shape: BoxShape.circle),
+                            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 14),
+                  Text(user.displayName,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 4),
+                  Text(user.email,
+                    style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Text('Tích lũy: ${user.xp} XP',
+                    style: const TextStyle(color: AppTheme.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
 
-                // ── Huy hiệu ──────────────────────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Huy hiệu', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
-                    TextButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsBadgesScreen())),
-                      child: const Text('Xem tất cả', style: TextStyle(color: AppTheme.teal, fontSize: 12)),
+                  // Role badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _buildBadgesSection(context),
-                const SizedBox(height: 24),
-
-                // ── Tiến trình học tập ────────────────────────────────
-                const Text('Tiến trình học tập', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
-                const SizedBox(height: 12),
-                _buildProgressSection(),
-                const SizedBox(height: 24),
-
-                // ── Menu ──────────────────────────────────────────────
-                const Text('Tài khoản', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border),
+                    child: Text(
+                      _roleLabel(user.role),
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  child: Column(
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+
+                  // ── Thống kê động ──────────────────────────────────────
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: AppTheme.teal))
+                      : Container(
+                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppTheme.border),
+                            boxShadow: const [BoxShadow(color: Color(0x0A1A2F6E), blurRadius: 10, offset: Offset(0, 4))],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStat('$_completedCount', 'Đã gấp', Icons.auto_awesome, AppTheme.indigo),
+                              _buildDivider(),
+                              _buildStat('$_favoritesCount', 'Yêu thích', Icons.favorite, AppTheme.red),
+                              _buildDivider(),
+                              GestureDetector(
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsBadgesScreen())).then((_) => _loadProfileData()),
+                                child: _buildStat('$_badgesCount', 'Huy hiệu', Icons.emoji_events, AppTheme.amber),
+                              ),
+                              _buildDivider(),
+                              GestureDetector(
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())).then((_) => _loadProfileData()),
+                                child: _buildStat('$_streakCount', 'Ngày liên tiếp', Icons.local_fire_department, AppTheme.teal),
+                              ),
+                            ],
+                          ),
+                        ),
+                  const SizedBox(height: 24),
+
+                  // ── Huy hiệu ──────────────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMenuAction(context, Icons.history_rounded, 'Lịch sử học tập',
-                        AppTheme.indigo, () => _showHistory(context)),
-                      _buildMenuDivider(),
-                      _buildMenuAction(context, Icons.workspace_premium_rounded, 'Thống kê & Huy hiệu',
-                        AppTheme.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsBadgesScreen()))),
-                      _buildMenuDivider(),
-                      _buildMenuAction(context, Icons.leaderboard_rounded, 'Bảng xếp hạng',
-                        AppTheme.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()))),
-                      if (user.role == UserRole.admin) ...[
+                      const Text('Huy hiệu', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+                      TextButton(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsBadgesScreen())).then((_) => _loadProfileData()),
+                        child: const Text('Xem tất cả', style: TextStyle(color: AppTheme.teal, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: AppTheme.teal))
+                      : _buildBadgesSection(context),
+                  const SizedBox(height: 24),
+
+                  // ── Tiến trình học tập ────────────────────────────────
+                  const Text('Tiến trình học tập', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+                  const SizedBox(height: 12),
+                  _buildProgressSection(),
+                  const SizedBox(height: 24),
+
+                  // ── Menu ──────────────────────────────────────────────
+                  const Text('Tài khoản', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildMenuAction(context, Icons.history_rounded, 'Lịch sử học tập',
+                          AppTheme.indigo, () => _showHistory(context)),
                         _buildMenuDivider(),
-                        _buildMenuAction(context, Icons.admin_panel_settings_rounded, 'Phê duyệt mẫu mới',
-                          AppTheme.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminApprovalScreen()))),
+                        _buildMenuAction(context, Icons.workspace_premium_rounded, 'Thống kê & Huy hiệu',
+                          AppTheme.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsBadgesScreen())).then((_) => _loadProfileData())),
+                        _buildMenuDivider(),
+                        _buildMenuAction(context, Icons.leaderboard_rounded, 'Bảng xếp hạng',
+                          AppTheme.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen())).then((_) => _loadProfileData())),
+                        if (user.role == UserRole.admin) ...[
+                          _buildMenuDivider(),
+                          _buildMenuAction(context, Icons.admin_panel_settings_rounded, 'Phê duyệt mẫu mới',
+                            AppTheme.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminApprovalScreen())).then((_) => _loadProfileData())),
+                        ],
+                        _buildMenuDivider(),
+                        _buildMenuAction(context, Icons.settings_rounded, 'Cài đặt tài khoản',
+                          AppTheme.muted, () => _showSettings(context)),
+                        _buildMenuDivider(),
+                        _buildMenuAction(context, Icons.help_outline_rounded, 'Trung tâm trợ giúp',
+                          AppTheme.teal, () => _showHelp(context)),
                       ],
-                      _buildMenuDivider(),
-                      _buildMenuAction(context, Icons.settings_rounded, 'Cài đặt tài khoản',
-                        AppTheme.muted, () => _showSettings(context)),
-                      _buildMenuDivider(),
-                      _buildMenuAction(context, Icons.help_outline_rounded, 'Trung tâm trợ giúp',
-                        AppTheme.teal, () => _showHelp(context)),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // ── Đăng xuất ─────────────────────────────────────────
-                OutlinedButton.icon(
-                  onPressed: () {
-                    auth.logout();
-                    Navigator.of(context).pushReplacementNamed('/');
-                  },
-                  icon: const Icon(Icons.logout_rounded, size: 18),
-                  label: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.red,
-                    side: const BorderSide(color: AppTheme.red),
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  // ── Đăng xuất ─────────────────────────────────────────
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      auth.logout();
+                      Navigator.of(context).pushReplacementNamed('/');
+                    },
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.red,
+                      side: const BorderSide(color: AppTheme.red),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -346,10 +376,14 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  // ── Huy hiệu (hiện 3 earned + 1 preview chưa mở khóa) ───────────────────
+  // ── Huy hiệu ──────────────────────────────────────────────────────────
   Widget _buildBadgesSection(BuildContext context) {
-    final earned = allBadges.where((b) => b.earned).toList();
-    final locked = allBadges.where((b) => !b.earned).first;
+    if (_allBadges.isEmpty) {
+      return const Center(child: Text('Không tìm thấy thông tin huy hiệu', style: TextStyle(color: AppTheme.muted)));
+    }
+
+    final earned = _allBadges.where((b) => b['earned'] == true).toList();
+    final locked = _allBadges.where((b) => b['earned'] == false).toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -360,16 +394,15 @@ class _ProfileTabState extends State<ProfileTab> {
       ),
       child: Column(
         children: [
-          // Earned badges
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              ...earned.map((b) => Padding(
+              ...earned.take(3).map((b) => Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: _buildBadgeTile(b, context),
+                child: _buildBadgeTile(b, true, context),
               )),
-              // 1 huy hiệu chưa mở khóa, mờ đi
-              _buildLockedBadge(locked, context),
+              if (locked.isNotEmpty)
+                _buildBadgeTile(locked.first, false, context),
             ],
           ),
           const SizedBox(height: 14),
@@ -380,17 +413,19 @@ class _ProfileTabState extends State<ProfileTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${earned.length}/${allBadges.length} huy hiệu',
+                  Text('${earned.length}/${_allBadges.length} huy hiệu',
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
-                  Text('Còn ${allBadges.length - earned.length} huy hiệu nữa!',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+                  Text(
+                    locked.isEmpty ? 'Tuyệt vời! Đã mở khóa tất cả!' : 'Còn ${locked.length} huy hiệu nữa!',
+                    style: const TextStyle(fontSize: 11, color: AppTheme.muted),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
-                  value: earned.length / allBadges.length,
+                  value: _allBadges.isEmpty ? 0 : earned.length / _allBadges.length,
                   backgroundColor: AppTheme.gray,
                   valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.amber),
                   minHeight: 8,
@@ -403,9 +438,13 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildBadgeTile(BadgeData b, BuildContext context) {
+  Widget _buildBadgeTile(dynamic b, bool isEarned, BuildContext context) {
+    final emoji = b['emoji'] ?? '🏆';
+    final name = b['name'] ?? '';
+    final color = isEarned ? AppTheme.teal : AppTheme.gray;
+
     return GestureDetector(
-      onTap: () => _showBadgeDetail(context, b),
+      onTap: () => _showBadgeDetail(context, b, isEarned),
       child: Column(
         children: [
           Container(
@@ -413,47 +452,22 @@ class _ProfileTabState extends State<ProfileTab> {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: b.color.withOpacity(0.12),
-              border: Border.all(color: b.color.withOpacity(0.5), width: 2),
+              color: isEarned ? AppTheme.teal.withOpacity(0.12) : AppTheme.gray.withOpacity(0.4),
+              border: Border.all(color: isEarned ? AppTheme.teal.withOpacity(0.5) : AppTheme.border, width: 2),
             ),
-            child: Center(child: Text(b.emoji, style: const TextStyle(fontSize: 30))),
+            child: Center(
+              child: isEarned 
+                  ? Text(emoji, style: const TextStyle(fontSize: 30))
+                  : const Icon(Icons.lock_rounded, color: AppTheme.muted, size: 26),
+            ),
           ),
           const SizedBox(height: 6),
           SizedBox(
             width: 60,
-            child: Text(b.name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+            child: Text(name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center, maxLines: 2),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLockedBadge(BadgeData b, BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showBadgeDetail(context, b),
-      child: Opacity(
-        opacity: 0.38,
-        child: Column(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.gray,
-                border: Border.all(color: AppTheme.border, width: 2),
-              ),
-              child: const Center(child: Icon(Icons.lock_rounded, color: AppTheme.muted, size: 26)),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: 60,
-              child: Text(b.name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.muted),
-                textAlign: TextAlign.center, maxLines: 2),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -469,17 +483,14 @@ class _ProfileTabState extends State<ProfileTab> {
       ),
       child: Column(
         children: [
-          _buildProgressRow('Mẫu hoàn thành tuần này', 3, 5, AppTheme.teal),
-          const SizedBox(height: 14),
-          _buildProgressRow('Thời gian học tập (giờ)', 4, 10, AppTheme.indigo),
-          const SizedBox(height: 14),
-          _buildProgressRow('Mức độ khó hoàn thành', 2, 5, AppTheme.amber),
+          _buildProgressRow('Mẫu hoàn thành của bạn', _completedCount, _historyItems.isEmpty ? 5 : _historyItems.length, AppTheme.teal),
         ],
       ),
     );
   }
 
   Widget _buildProgressRow(String label, int current, int total, Color color) {
+    final progressVal = total == 0 ? 0.0 : current / total;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -494,7 +505,7 @@ class _ProfileTabState extends State<ProfileTab> {
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
-            value: current / total,
+            value: progressVal,
             backgroundColor: AppTheme.gray,
             valueColor: AlwaysStoppedAnimation<Color>(color),
             minHeight: 7,
@@ -526,7 +537,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // ══ Bottom Sheets ════════════════════════════════════════════════════════
 
-  // 📋 Lịch sử học tập
+  // 📋 Lịch sử học tập thực tế từ Database
   void _showHistory(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -550,56 +561,61 @@ class _ProfileTabState extends State<ProfileTab> {
                   children: [
                     Icon(Icons.history_rounded, color: AppTheme.indigo),
                     SizedBox(width: 10),
-                    Text('Lịch sử học tập',
+                    Text('Lịch sử học tập thực tế',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
                   ],
                 ),
               ),
               Expanded(
-                child: ListView.builder(
-                  controller: ctrl,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  itemCount: _historyItems.length,
-                  itemBuilder: (_, i) {
-                    final item = _historyItems[i];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48, height: 48,
-                            decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(10)),
-                            child: Center(child: Text(item['emoji'], style: const TextStyle(fontSize: 26))),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                child: _historyItems.isEmpty
+                    ? const Center(child: Text('Chưa có lịch sử học tập nào!', style: TextStyle(color: AppTheme.muted)))
+                    : ListView.builder(
+                        controller: ctrl,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        itemCount: _historyItems.length,
+                        itemBuilder: (_, i) {
+                          final item = _historyItems[i];
+                          final name = item['name'] ?? '';
+                          final emoji = item['emoji'] ?? '🦢';
+                          final isCompleted = item['is_completed'] == 1 || item['isCompleted'] == true;
+                          final statusText = isCompleted ? 'Hoàn thành' : 'Đang học (Bước ${item['current_step'] ?? item['currentStep']})';
+                          
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Row(
                               children: [
-                                Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                const SizedBox(height: 3),
-                                Text(item['status'],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: item['done'] ? AppTheme.teal : AppTheme.amber,
-                                    fontWeight: FontWeight.w600,
-                                  )),
+                                Container(
+                                  width: 48, height: 48,
+                                  decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(10)),
+                                  child: Center(child: Text(emoji, style: const TextStyle(fontSize: 26))),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      const SizedBox(height: 3),
+                                      Text(statusText,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isCompleted ? AppTheme.teal : AppTheme.amber,
+                                          fontWeight: FontWeight.w600,
+                                        )),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                          Text(item['date'],
-                            style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           ),
@@ -609,7 +625,11 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   // 📌 Chi tiết 1 huy hiệu
-  void _showBadgeDetail(BuildContext context, BadgeData b) {
+  void _showBadgeDetail(BuildContext context, dynamic b, bool isEarned) {
+    final emoji = b['emoji'] ?? '🏆';
+    final name = b['name'] ?? '';
+    final description = b['description'] ?? '';
+
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -619,25 +639,25 @@ class _ProfileTabState extends State<ProfileTab> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              b.earned
-                ? Text(b.emoji, style: const TextStyle(fontSize: 56))
+              isEarned
+                ? Text(emoji, style: const TextStyle(fontSize: 56))
                 : const Icon(Icons.lock_rounded, size: 56, color: AppTheme.muted),
               const SizedBox(height: 16),
-              Text(b.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+              Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
               const SizedBox(height: 8),
-              Text(b.description, textAlign: TextAlign.center,
+              Text(description, textAlign: TextAlign.center,
                 style: const TextStyle(color: AppTheme.muted, fontSize: 14, height: 1.5)),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: b.earned ? AppTheme.teal.withOpacity(0.1) : AppTheme.gray,
+                  color: isEarned ? AppTheme.teal.withOpacity(0.1) : AppTheme.gray,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  b.earned ? '✅ Đã đạt được' : '🔒 Chưa mở khóa',
+                  isEarned ? '✅ Đã đạt được' : '🔒 Chưa mở khóa',
                   style: TextStyle(
-                    color: b.earned ? AppTheme.teal : AppTheme.muted,
+                    color: isEarned ? AppTheme.teal : AppTheme.muted,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

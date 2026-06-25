@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/services/api_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -10,70 +11,154 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  final _otpController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  int _step = 1; // 1: Email, 2: Reset Password
+  int _step = 1; // 1: Email, 2: OTP & Reset Password
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _otpController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _handleResetPassword() {
+  // Xử lý gửi OTP và thiết lập mật khẩu mới
+  Future<void> _handleResetPassword() async {
+    final email = _emailController.text.trim();
+
     if (_step == 1) {
-      if (_emailController.text.isNotEmpty) {
-        setState(() {
-          _step = 2;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Xác thực email thành công! Vui lòng thiết lập mật khẩu mới.'),
-            backgroundColor: AppTheme.teal,
-          ),
-        );
-      } else {
+      if (email.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Vui lòng nhập địa chỉ email của bạn!'),
             backgroundColor: AppTheme.red,
           ),
         );
-      }
-    } else {
-      if (_newPasswordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vui lòng nhập đầy đủ thông tin mật khẩu!'),
-            backgroundColor: AppTheme.red,
-          ),
-        );
         return;
       }
-      if (_newPasswordController.text != _confirmPasswordController.text) {
+
+      setState(() => _isLoading = true);
+      
+      try {
+        final success = await ApiService.sendOTP(email);
+        if (mounted) {
+          setState(() => _isLoading = false);
+          if (success) {
+            setState(() {
+              _step = 2; // Chuyển sang bước nhập OTP và đặt lại mật khẩu
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Mã OTP xác thực đã được gửi tới Email của bạn!'),
+                backgroundColor: AppTheme.teal,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Gửi mã OTP thất bại! Vui lòng kiểm tra lại email của bạn.'),
+                backgroundColor: AppTheme.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi kết nối: $e'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+        }
+      }
+    } else {
+      // Bước 2: Xác minh OTP và reset
+      final otpCode = _otpController.text.trim();
+      final newPassword = _newPasswordController.text.trim();
+      final confirmPassword = _confirmPasswordController.text.trim();
+
+      if (otpCode.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Mật khẩu xác nhận không trùng khớp!'),
+            content: Text('Vui lòng điền đầy đủ thông tin!'),
             backgroundColor: AppTheme.red,
           ),
         );
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mật khẩu của bạn đã được đặt lại thành công!'),
-          backgroundColor: AppTheme.teal,
-        ),
-      );
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) Navigator.of(context).pop();
-      });
+      if (newPassword != confirmPassword) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mật khẩu xác nhận không khớp!'),
+            backgroundColor: AppTheme.red,
+          ),
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      try {
+        // 1. Xác thực OTP
+        final otpOk = await ApiService.verifyOTP(email, otpCode);
+        if (!otpOk) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Mã OTP không hợp lệ hoặc đã hết hạn!'),
+                backgroundColor: AppTheme.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        // 2. Thực hiện đổi mật khẩu
+        final resetOk = await ApiService.resetPassword(email, newPassword);
+
+        if (mounted) {
+          setState(() => _isLoading = false);
+          if (resetOk) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Mật khẩu của bạn đã được đặt lại thành công!'),
+                backgroundColor: AppTheme.teal,
+              ),
+            );
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) Navigator.of(context).pop();
+            });
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đặt lại mật khẩu thất bại! Vui lòng thử lại.'),
+                backgroundColor: AppTheme.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi kết nối: $e'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -124,7 +209,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Text(
                 _step == 1
                     ? 'Đừng lo lắng! Hãy nhập email đã đăng ký. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu cho bạn.'
-                    : 'Vui lòng thiết lập mật khẩu mới mạnh mẽ để bảo vệ tài khoản của bạn.',
+                    : 'Vui lòng nhập mã OTP 6 số và thiết lập mật khẩu mới của bạn.',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppTheme.muted,
@@ -153,6 +238,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   keyboardType: TextInputType.emailAddress,
                 ),
               ] else ...[
+                // OTP Code Field
+                const Text(
+                  'Mã xác thực OTP (6 chữ số)',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _otpController,
+                  decoration: const InputDecoration(
+                    hintText: 'Nhập mã 6 số',
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Text('🔑', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 20),
+
                 // New Password Field
                 const Text(
                   'Mật khẩu mới',
@@ -210,8 +314,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
               // Submit Button
               FilledButton(
-                onPressed: _handleResetPassword,
-                child: Text(_step == 1 ? 'Gửi yêu cầu' : 'Đặt lại mật khẩu'),
+                onPressed: _isLoading ? null : _handleResetPassword,
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(_step == 1 ? 'Gửi yêu cầu' : 'Đặt lại mật khẩu'),
               ),
 
               const SizedBox(height: 24),

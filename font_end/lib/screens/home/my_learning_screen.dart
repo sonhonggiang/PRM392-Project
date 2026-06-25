@@ -1,22 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme.dart';
+import '../../../core/services/api_service.dart';
 import '../origami/origami_detail_screen.dart';
 
-// ─── Dữ liệu mẫu "Đang học" và "Đã hoàn thành" ─────────────────────────────
-final List<Map<String, dynamic>> inProgressModels = [
-  {'name': 'Rồng Lửa', 'emoji': '🐲', 'step': 5, 'total': 30, 'category': 'Động vật', 'date': '20/06/2026'},
-  {'name': 'Hạc giấy Nhật Bản', 'emoji': '🦢', 'step': 4, 'total': 18, 'category': 'Động vật', 'date': '23/06/2026'},
-  {'name': 'Hoa Hồng Cổ Điển', 'emoji': '🌺', 'step': 7, 'total': 20, 'category': 'Hoa cỏ', 'date': '22/06/2026'},
-];
-
-final List<Map<String, dynamic>> completedModels = [
-  {'name': 'Trái tim đôi', 'emoji': '❤️', 'step': 12, 'total': 12, 'category': 'Đồ vật', 'date': '21/06/2026'},
-  {'name': 'Con Ếch nhảy', 'emoji': '🐸', 'step': 8, 'total': 8, 'category': 'Động vật', 'date': '18/06/2026'},
-  {'name': 'Máy Bay chiến đấu', 'emoji': '✈️', 'step': 10, 'total': 10, 'category': 'Đồ vật', 'date': '10/06/2026'},
-  {'name': 'Hạc Giấy Đơn', 'emoji': '🦢', 'step': 6, 'total': 6, 'category': 'Động vật', 'date': '05/06/2026'},
-];
-
-// ─── Màn hình "Tiếp tục học" ────────────────────────────────────────────────
 class MyLearningScreen extends StatefulWidget {
   const MyLearningScreen({super.key});
 
@@ -27,11 +13,14 @@ class MyLearningScreen extends StatefulWidget {
 class _MyLearningScreenState extends State<MyLearningScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<dynamic> _progressList = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadProgress();
   }
 
   @override
@@ -39,6 +28,37 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     _tabController.dispose();
     super.dispose();
   }
+
+  Future<void> _loadProgress() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final progress = await ApiService.getProgress();
+      if (mounted) {
+        setState(() {
+          _progressList = progress;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Lỗi tải tiến trình học: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  List<dynamic> get inProgressModels => _progressList
+      .where((p) => p['is_completed'] == 0 || p['is_completed'] == false)
+      .toList();
+
+  List<dynamic> get completedModels => _progressList
+      .where((p) => p['is_completed'] == 1 || p['is_completed'] == true)
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +89,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                 children: [
                   const Icon(Icons.hourglass_bottom_rounded, size: 16),
                   const SizedBox(width: 6),
-                  Text('Đang làm dở (${inProgressModels.length})'),
+                  Text('Đang làm dở (${_isLoading ? '...' : inProgressModels.length})'),
                 ],
               ),
             ),
@@ -79,28 +99,28 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                 children: [
                   const Icon(Icons.check_circle_rounded, size: 16),
                   const SizedBox(width: 6),
-                  Text('Đã hoàn thành (${completedModels.length})'),
+                  Text('Đã hoàn thành (${_isLoading ? '...' : completedModels.length})'),
                 ],
               ),
             ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // ── Tab 1: Đang làm dở ────────────────────────────────────────
-          _buildInProgressTab(),
-          // ── Tab 2: Đã hoàn thành ──────────────────────────────────────
-          _buildCompletedTab(),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.indigo))
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildInProgressTab(),
+                _buildCompletedTab(),
+              ],
+            ),
     );
   }
 
-  // ── Tab đang học ─────────────────────────────────────────────────────────
   Widget _buildInProgressTab() {
-    if (inProgressModels.isEmpty) {
+    final list = inProgressModels;
+    if (list.isEmpty) {
       return _buildEmptyState(
         emoji: '📚',
         title: 'Chưa có mẫu đang học',
@@ -109,15 +129,33 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: inProgressModels.length,
+      itemCount: list.length,
       itemBuilder: (context, i) {
-        final item = inProgressModels[i];
-        final double progress = (item['step'] as int) / (item['total'] as int);
+        final item = list[i];
+        
+        int totalSteps = 5;
+        if (item['difficulty'] == 'Trung bình') {
+          totalSteps = 10;
+        } else if (item['difficulty'] == 'Khó') {
+          totalSteps = 20;
+        }
+        int currentStep = item['current_step'] ?? 1;
+        if (currentStep > totalSteps) {
+          totalSteps = currentStep;
+        }
+        final double progress = currentStep / totalSteps;
+
+        final dateStr = item['updated_at'] != null 
+            ? item['updated_at'].toString().split('T')[0] 
+            : '';
+
         return GestureDetector(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const OrigamiDetailScreen()),
-          ),
+            MaterialPageRoute(
+              builder: (_) => OrigamiDetailScreen(origamiId: item['origami_id']),
+            ),
+          ).then((_) => _loadProgress()),
           child: Container(
             margin: const EdgeInsets.only(bottom: 14),
             padding: const EdgeInsets.all(16),
@@ -131,21 +169,20 @@ class _MyLearningScreenState extends State<MyLearningScreen>
               children: [
                 Row(
                   children: [
-                    // Emoji thumbnail
                     Container(
                       width: 60, height: 60,
                       decoration: BoxDecoration(
                         color: AppTheme.bg,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Center(child: Text(item['emoji'], style: const TextStyle(fontSize: 30))),
+                      child: Center(child: Text(item['emoji'] ?? '📄', style: const TextStyle(fontSize: 30))),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item['name'],
+                          Text(item['name'] ?? '',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.text)),
                           const SizedBox(height: 4),
                           Row(
@@ -156,18 +193,18 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                                   color: AppTheme.indigo.withOpacity(0.08),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(item['category'],
+                                child: Text('Độ khó: ${item['difficulty'] ?? 'Dễ'}',
                                   style: const TextStyle(fontSize: 11, color: AppTheme.indigo, fontWeight: FontWeight.w600)),
                               ),
                               const SizedBox(width: 8),
-                              Text('Cập nhật: ${item['date']}',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+                              if (dateStr.isNotEmpty)
+                                Text('Cập nhật: $dateStr',
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    // Play button
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: const BoxDecoration(color: AppTheme.indigo, shape: BoxShape.circle),
@@ -176,14 +213,13 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                   ],
                 ),
                 const SizedBox(height: 14),
-                // Progress bar
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Bước ${item['step']}/${item['total']}',
+                        Text('Bước $currentStep/$totalSteps',
                           style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
                         Text('${(progress * 100).toInt()}%',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.teal)),
@@ -209,9 +245,9 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     );
   }
 
-  // ── Tab đã hoàn thành ────────────────────────────────────────────────────
   Widget _buildCompletedTab() {
-    if (completedModels.isEmpty) {
+    final list = completedModels;
+    if (list.isEmpty) {
       return _buildEmptyState(
         emoji: '🏆',
         title: 'Chưa hoàn thành mẫu nào',
@@ -220,14 +256,20 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: completedModels.length,
+      itemCount: list.length,
       itemBuilder: (context, i) {
-        final item = completedModels[i];
+        final item = list[i];
+        final dateStr = item['completed_at'] != null 
+            ? item['completed_at'].toString().split('T')[0] 
+            : (item['updated_at'] != null ? item['updated_at'].toString().split('T')[0] : '');
+
         return GestureDetector(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const OrigamiDetailScreen()),
-          ),
+            MaterialPageRoute(
+              builder: (_) => OrigamiDetailScreen(origamiId: item['origami_id']),
+            ),
+          ).then((_) => _loadProgress()),
           child: Container(
             margin: const EdgeInsets.only(bottom: 14),
             padding: const EdgeInsets.all(16),
@@ -239,18 +281,17 @@ class _MyLearningScreenState extends State<MyLearningScreen>
             ),
             child: Row(
               children: [
-                // Emoji
                 Container(
                   width: 60, height: 60,
                   decoration: BoxDecoration(color: AppTheme.teal.withOpacity(0.08), borderRadius: BorderRadius.circular(14)),
-                  child: Center(child: Text(item['emoji'], style: const TextStyle(fontSize: 30))),
+                  child: Center(child: Text(item['emoji'] ?? '🏆', style: const TextStyle(fontSize: 30))),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item['name'],
+                      Text(item['name'] ?? '',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.text)),
                       const SizedBox(height: 4),
                       Row(
@@ -266,13 +307,14 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text('Hoàn thành: ${item['date']}',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+                      if (dateStr.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text('Hoàn thành: $dateStr',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+                      ],
                     ],
                   ),
                 ),
-                // Replay icon
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

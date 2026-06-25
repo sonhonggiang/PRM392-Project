@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 import '../../../models/user_model.dart';
 import '../../origami/origami_detail_screen.dart';
 import '../my_learning_screen.dart';
@@ -19,30 +20,17 @@ class _ExploreTabState extends State<ExploreTab> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // 2. Danh sách dữ liệu đầy đủ
-  final List<Map<String, dynamic>> _origamiModels = const [
-    {'name': 'Hoa Hồng', 'emoji': '🌺', 'rating': '⭐⭐⭐', 'likes': '1.2k', 'category': 'Hoa cỏ'},
-    {'name': 'Hạc Giấy', 'emoji': '🦢', 'rating': '⭐⭐⭐⭐', 'likes': '2.5k', 'category': 'Động vật'},
-    {'name': 'Rồng Lửa', 'emoji': '🐲', 'rating': '⭐⭐⭐⭐⭐', 'likes': '5.0k', 'category': 'Động vật'},
-    {'name': 'Máy Bay', 'emoji': '✈️', 'rating': '⭐⭐', 'likes': '800', 'category': 'Đồ vật'},
-    {'name': 'Con Ếch', 'emoji': '🐸', 'rating': '⭐⭐⭐', 'likes': '1.1k', 'category': 'Động vật'},
-    {'name': 'Trái Tim', 'emoji': '❤️', 'rating': '⭐⭐', 'likes': '3.2k', 'category': 'Đồ vật'},
-    {'name': 'Cá Vàng', 'emoji': '🐠', 'rating': '⭐⭐⭐⭐', 'likes': '1.8k', 'category': 'Động vật'},
-    {'name': 'Khủng Long', 'emoji': '🦖', 'rating': '⭐⭐⭐⭐⭐', 'likes': '4.1k', 'category': 'Động vật'},
-    {'name': 'Tháp Eiffel', 'emoji': '🗼', 'rating': '⭐⭐⭐⭐', 'likes': '900', 'category': 'Kiến trúc'},
-    {'name': 'Cây Thông', 'emoji': '🌲', 'rating': '⭐⭐', 'likes': '1.5k', 'category': 'Hoa cỏ'},
-  ];
+  // Dữ liệu tải động từ API
+  List<dynamic> _origamiModels = [];
+  int _inProgressCount = 0;
+  int _completedCount = 0;
+  List<dynamic> _inProgressList = [];
+  bool _isLoading = true;
 
-
-
-
-  // 3. Logic lọc kép: Theo danh mục VÀ Theo từ khóa tìm kiếm
-  List<Map<String, dynamic>> get _filteredModels {
-    return _origamiModels.where((item) {
-      final matchesCategory = _selectedCategory == 'Tất cả' || item['category'] == _selectedCategory;
-      final matchesSearch = item['name'].toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
   }
 
   @override
@@ -51,9 +39,83 @@ class _ExploreTabState extends State<ExploreTab> {
     super.dispose();
   }
 
+  // Tải dữ liệu ban đầu
+  Future<void> _loadInitialData() async {
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
+    final isGuest = user.role == UserRole.guest;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Tải danh sách mẫu Origami theo bộ lọc hiện tại
+      await _loadModels();
+
+      // 2. Tải tiến trình tiếp tục học
+      if (!isGuest) {
+        final progressList = await ApiService.getProgress();
+        final inProgList = [];
+        int completed = 0;
+
+        for (var prog in progressList) {
+          if (prog['is_completed'] == 1 || prog['isCompleted'] == true) {
+            completed++;
+          } else {
+            inProgList.add(prog);
+          }
+        }
+
+        setState(() {
+          _inProgressList = inProgList;
+          _inProgressCount = inProgList.length;
+          _completedCount = completed;
+        });
+      }
+    } catch (e) {
+      print('Lỗi tải dữ liệu ExploreTab: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Tải danh sách mẫu khi bộ lọc danh mục hoặc từ khóa thay đổi
+  Future<void> _loadModels() async {
+    final categoryFilter = _selectedCategory == 'Tất cả' ? null : _selectedCategory;
+    final list = await ApiService.getOrigamiList(
+      category: categoryFilter,
+      search: _searchQuery.trim().isEmpty ? null : _searchQuery,
+    );
+    if (mounted) {
+      setState(() {
+        _origamiModels = list;
+      });
+    }
+  }
+
+  // Xử lý khi click thay đổi danh mục
+  Future<void> _onCategoryChanged(String categoryName) async {
+    setState(() {
+      _selectedCategory = categoryName;
+      _isLoading = true;
+    });
+    await _loadModels();
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Xử lý khi nhập từ khóa tìm kiếm
+  Future<void> _onSearchChanged(String query) async {
+    setState(() {
+      _searchQuery = query;
+    });
+    await _loadModels();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredList = _filteredModels;
     final auth = context.watch<AuthProvider>();
     final isGuest = auth.currentUser.role == UserRole.guest;
 
@@ -65,11 +127,7 @@ class _ExploreTabState extends State<ExploreTab> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: TextField(
             controller: _searchController,
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+            onChanged: _onSearchChanged,
             decoration: InputDecoration(
               hintText: 'Tìm kiếm mẫu gấp giấy...',
               prefixIcon: const Icon(Icons.search, color: AppTheme.muted),
@@ -78,7 +136,7 @@ class _ExploreTabState extends State<ExploreTab> {
                     icon: const Icon(Icons.clear, size: 18),
                     onPressed: () {
                       _searchController.clear();
-                      setState(() { _searchQuery = ''; });
+                      _onSearchChanged('');
                     })
                 : null,
               filled: true,
@@ -101,54 +159,61 @@ class _ExploreTabState extends State<ExploreTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                'Tất cả', 'Động vật', 'Hoa cỏ', 'Đồ vật', 'Kiến trúc'
+                'Tất cả', 'Động vật', 'Hoa cỏ', 'Đồ vật'
               ].map((cat) => _buildFilterChip(cat, _selectedCategory == cat)).toList(),
             ),
           ),
         ),
 
-        // Grid View với "Tiếp tục học" ở đầu
+        // Grid View
         Expanded(
-          child: filteredList.isEmpty
-            ? _buildEmptyState()
-            : ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // --- Tiếp tục học (chỉ hiện khi không search và đã đăng nhập) ---
-                  if (_searchQuery.isEmpty && !isGuest) ...[
-                    _buildContinueLearningSection(context),
-                    const SizedBox(height: 20),
-                  ],
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.teal))
+              : _origamiModels.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _loadInitialData,
+                      color: AppTheme.teal,
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          // --- Tiếp tục học (chỉ hiện khi không search và đã đăng nhập) ---
+                          if (_searchQuery.isEmpty && !isGuest && _inProgressList.isNotEmpty) ...[
+                            _buildContinueLearningSection(context),
+                            const SizedBox(height: 20),
+                          ],
 
-                  // --- Grid tất cả mẫu ---
-                  Text(
-                    _searchQuery.isEmpty ? 'Tất cả mẫu gấp' : 'Kết quả tìm kiếm',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.indigo),
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.82,
+                          // --- Grid tất cả mẫu ---
+                          Text(
+                            _searchQuery.isEmpty ? 'Tất cả mẫu gấp' : 'Kết quả tìm kiếm',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                          ),
+                          const SizedBox(height: 12),
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.82,
+                            ),
+                            itemCount: _origamiModels.length,
+                            itemBuilder: (context, index) {
+                              final item = _origamiModels[index];
+                              return _buildOrigamiCard(
+                                context,
+                                item['id'],
+                                item['name'] ?? '',
+                                item['emoji'] ?? '📄',
+                                item['difficulty'] ?? 'Dễ',
+                                (item['rating'] ?? 0.0).toString(),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, index) {
-                      final item = filteredList[index];
-                      return _buildOrigamiCard(
-                        context,
-                        item['name'],
-                        item['emoji'],
-                        item['rating'],
-                        item['likes'],
-                      );
-                    },
-                  ),
-                ],
-              ),
         ),
       ],
     );
@@ -156,12 +221,11 @@ class _ExploreTabState extends State<ExploreTab> {
 
   // ── Phần "Tiếp tục học" → navigate sang MyLearningScreen ───────────────
   Widget _buildContinueLearningSection(BuildContext context) {
-    final inProgress = inProgressModels;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const MyLearningScreen()),
-      ),
+      ).then((_) => _loadInitialData()),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -177,51 +241,51 @@ class _ExploreTabState extends State<ExploreTab> {
           children: [
             // Stack emoji của các mẫu đang học
             SizedBox(
-              width: 80,
-              height: 50,
+              width: 60,
+              height: 40,
               child: Stack(
                 children: [
-                  ...inProgress.take(3).toList().asMap().entries.map((e) {
+                  ..._inProgressList.take(3).toList().asMap().entries.map((e) {
                     final idx = e.key;
                     final item = e.value;
                     return Positioned(
-                      left: idx * 20.0,
+                      left: idx * 15.0,
                       child: Container(
-                        width: 44, height: 44,
+                        width: 36, height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                          border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
                         ),
-                        child: Center(child: Text(item['emoji'], style: const TextStyle(fontSize: 20))),
+                        child: Center(child: Text(item['emoji'] ?? '📄', style: const TextStyle(fontSize: 16))),
                       ),
                     );
                   }),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Tiếp tục học',
-                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
                   Text(
-                    '${inProgress.length} mẫu đang làm dở • ${completedModels.length} đã hoàn thành',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                    '$_inProgressCount mẫu đang làm dở • $_completedCount đã hoàn thành',
+                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
                   ),
                 ],
               ),
             ),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+              child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 12),
             ),
           ],
         ),
@@ -247,11 +311,7 @@ class _ExploreTabState extends State<ExploreTab> {
 
   Widget _buildFilterChip(String label, bool isSelected) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedCategory = label;
-        });
-      },
+      onTap: () => _onCategoryChanged(label),
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -272,12 +332,12 @@ class _ExploreTabState extends State<ExploreTab> {
     );
   }
 
-  Widget _buildOrigamiCard(BuildContext context, String name, String emoji, String rating, String likes) {
+  Widget _buildOrigamiCard(BuildContext context, int id, String name, String emoji, String rating, String difficulty) {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const OrigamiDetailScreen()),
-        );
+          MaterialPageRoute(builder: (_) => OrigamiDetailScreen(origamiId: id)),
+        ).then((_) => _loadInitialData());
       },
       child: Container(
         decoration: BoxDecoration(
@@ -307,7 +367,13 @@ class _ExploreTabState extends State<ExploreTab> {
                     Positioned(
                       top: 10,
                       left: 10,
-                      child: Text(rating, style: const TextStyle(fontSize: 10)),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star, color: AppTheme.amber, size: 10),
+                          const SizedBox(width: 2),
+                          Text(rating, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.amber)),
+                        ],
+                      ),
                     ),
                     Center(
                       child: Text(emoji, style: const TextStyle(fontSize: 48)),
@@ -318,23 +384,19 @@ class _ExploreTabState extends State<ExploreTab> {
             ),
             Padding(
               padding: const EdgeInsets.all(12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Row(
-                    children: [
-                      const Icon(Icons.favorite, color: AppTheme.red, size: 12),
-                      const SizedBox(width: 4),
-                      Text(likes, style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'Độ khó: $difficulty',
+                    style: const TextStyle(fontSize: 10, color: AppTheme.muted),
                   ),
                 ],
               ),

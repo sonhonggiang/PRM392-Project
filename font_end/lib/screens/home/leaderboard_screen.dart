@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/services/api_service.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -11,33 +14,49 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<Map<String, dynamic>> _weeklyRankings = const [
-    {'rank': 1, 'name': 'Nguyễn Hùng', 'avatar': '🙋‍♂️', 'xp': 450, 'isSelf': false},
-    {'rank': 2, 'name': 'Minh Thư', 'avatar': '🙋‍♀️', 'xp': 410, 'isSelf': false},
-    {'rank': 3, 'name': 'Thanh Sơn', 'avatar': '👨‍🎨', 'xp': 390, 'isSelf': false},
-    {'rank': 4, 'name': 'Hoàng Long', 'avatar': '🧑‍💻', 'xp': 350, 'isSelf': false},
-    {'rank': 5, 'name': 'Bích Trâm', 'avatar': '👩‍⚕️', 'xp': 320, 'isSelf': false},
-    {'rank': 6, 'name': 'Khánh Nam', 'avatar': '👨‍🍳', 'xp': 300, 'isSelf': false},
-    {'rank': 7, 'name': 'Linh Chi', 'avatar': '👩‍💼', 'xp': 280, 'isSelf': false},
-    {'rank': 8, 'name': 'Quốc Anh', 'avatar': '👨‍✈️', 'xp': 260, 'isSelf': false},
-    {'rank': 9, 'name': 'Ngọc Hải', 'avatar': '👩‍🎨', 'xp': 250, 'isSelf': false},
-  ];
-
-  final List<Map<String, dynamic>> _monthlyRankings = const [
-    {'rank': 1, 'name': 'Linh Chi', 'avatar': '👩‍💼', 'xp': 1850, 'isSelf': false},
-    {'rank': 2, 'name': 'Nguyễn Hùng', 'avatar': '🙋‍♂️', 'xp': 1720, 'isSelf': false},
-    {'rank': 3, 'name': 'Minh Thư', 'avatar': '🙋‍♀️', 'xp': 1600, 'isSelf': false},
-    {'rank': 4, 'name': 'Hoàng Long', 'avatar': '🧑‍💻', 'xp': 1420, 'isSelf': false},
-    {'rank': 5, 'name': 'Thanh Sơn', 'avatar': '👨‍🎨', 'xp': 1300, 'isSelf': false},
-    {'rank': 6, 'name': 'Sơn Giang', 'avatar': '👤', 'xp': 1250, 'isSelf': true},
-    {'rank': 7, 'name': 'Bích Trâm', 'avatar': '👩‍⚕️', 'xp': 1100, 'isSelf': false},
-    {'rank': 8, 'name': 'Khánh Nam', 'avatar': '👨‍🍳', 'xp': 950, 'isSelf': false},
-  ];
+  List<dynamic> _rankings = [];
+  bool _isLoading = true;
+  int _myRank = 0;
+  int _myXp = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadLeaderboard();
+  }
+
+  // Tải bảng xếp hạng từ API
+  Future<void> _loadLeaderboard() async {
+    setState(() => _isLoading = true);
+    try {
+      final list = await ApiService.getLeaderboard();
+      final auth = context.read<AuthProvider>();
+      final myId = auth.currentUser.id;
+
+      // Tính vị trí xếp hạng của tôi
+      int myRank = 0;
+      int myXp = auth.currentUser.xp;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i]['id'].toString() == myId) {
+          myRank = i + 1;
+          myXp = list[i]['xp'] ?? auth.currentUser.xp;
+          break;
+        }
+      }
+
+      setState(() {
+        _rankings = list;
+        _myRank = myRank;
+        _myXp = myXp;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Lỗi tải bảng xếp hạng: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -75,27 +94,31 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildLeaderboardTab(weekly: true),
-          _buildLeaderboardTab(weekly: false),
-          _buildLeaderboardTab(weekly: true), // Duplicate weekly for all-time
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.teal))
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildLeaderboardTab(),
+                _buildLeaderboardTab(),
+                _buildLeaderboardTab(),
+              ],
+            ),
     );
   }
 
-  Widget _buildLeaderboardTab({required bool weekly}) {
-    final list = weekly ? _weeklyRankings : _monthlyRankings;
-    
-    // Top 3 separate
-    final top1 = list.firstWhere((e) => e['rank'] == 1);
-    final top2 = list.firstWhere((e) => e['rank'] == 2);
-    final top3 = list.firstWhere((e) => e['rank'] == 3);
+  Widget _buildLeaderboardTab() {
+    if (_rankings.isEmpty) {
+      return const Center(child: Text('Chưa có dữ liệu bảng xếp hạng!', style: TextStyle(color: AppTheme.muted)));
+    }
 
-    // Rank 4+ list
-    final lowerRanks = list.where((e) => e['rank'] > 3).toList();
+    // Top 3 (🥈 🥇 🥉)
+    final top1 = _rankings.isNotEmpty ? _rankings[0] : null;
+    final top2 = _rankings.length > 1 ? _rankings[1] : null;
+    final top3 = _rankings.length > 2 ? _rankings[2] : null;
+
+    // Rank 4+
+    final lowerRanks = _rankings.length > 3 ? _rankings.sublist(3) : [];
 
     return Stack(
       children: [
@@ -110,11 +133,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   // 🥈 Rank 2
-                  _buildPodiumAvatar(item: top2, height: 75, crownColor: AppTheme.border, isFirst: false),
+                  if (top2 != null)
+                    _buildPodiumAvatar(item: top2, rank: 2, height: 75, crownColor: AppTheme.border, isFirst: false)
+                  else
+                    const SizedBox(width: 75),
                   // 🥇 Rank 1
-                  _buildPodiumAvatar(item: top1, height: 95, crownColor: AppTheme.amber, isFirst: true),
+                  if (top1 != null)
+                    _buildPodiumAvatar(item: top1, rank: 1, height: 95, crownColor: AppTheme.amber, isFirst: true)
+                  else
+                    const SizedBox(width: 95),
                   // 🥉 Rank 3
-                  _buildPodiumAvatar(item: top3, height: 70, crownColor: const Color(0xFFCD7F32), isFirst: false),
+                  if (top3 != null)
+                    _buildPodiumAvatar(item: top3, rank: 3, height: 70, crownColor: const Color(0xFFCD7F32), isFirst: false)
+                  else
+                    const SizedBox(width: 70),
                 ],
               ),
             ),
@@ -126,7 +158,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                 itemCount: lowerRanks.length,
                 itemBuilder: (context, i) {
                   final item = lowerRanks[i];
-                  return _buildLeaderboardRow(item);
+                  final rank = i + 4; // Bắt đầu từ hạng #4
+                  return _buildLeaderboardRow(item, rank);
                 },
               ),
             ),
@@ -160,9 +193,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Hạng #12',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  child: Text(
+                    _myRank > 0 ? 'Hạng #$_myRank' : 'Chưa xếp hạng',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -174,12 +207,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Sơn Giang (Bạn)',
+                        'Bạn',
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Cần thêm 15 XP để vượt hạng #11',
+                        'Tiếp tục tích lũy thêm XP để thăng hạng!',
                         style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
                       ),
                     ],
@@ -188,8 +221,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                 
                 // XP Score
                 Text(
-                  '185 XP',
-                  style: TextStyle(
+                  '$_myXp XP',
+                  style: const TextStyle(
                     color: AppTheme.amber,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
@@ -204,11 +237,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
   }
 
   Widget _buildPodiumAvatar({
-    required Map<String, dynamic> item,
+    required dynamic item,
+    required int rank,
     required double height,
     required Color crownColor,
     required bool isFirst,
   }) {
+    final name = item['displayName'] ?? item['display_name'] ?? 'Ẩn danh';
+    final xp = item['xp'] ?? 0;
+    final avatarEmoji = item['avatarUrl']?.toString().isNotEmpty == true ? item['avatarUrl'] : '👤';
+
     return Column(
       children: [
         if (isFirst)
@@ -226,15 +264,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           ),
           child: Center(
             child: Text(
-              item['avatar'],
-              style: TextStyle(fontSize: height * 0.5),
+              avatarEmoji,
+              style: TextStyle(fontSize: height * 0.45),
             ),
           ),
         ),
         const SizedBox(height: 10),
-        Text(
-          item['name'],
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.indigo),
+        SizedBox(
+          width: 80,
+          child: Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.indigo),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         const SizedBox(height: 2),
         Container(
@@ -244,7 +288,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
-            '${item['xp']} XP',
+            '$xp XP',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -256,8 +300,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
     );
   }
 
-  Widget _buildLeaderboardRow(Map<String, dynamic> item) {
-    final bool isSelf = item['isSelf'] ?? false;
+  Widget _buildLeaderboardRow(dynamic item, int rank) {
+    final auth = context.read<AuthProvider>();
+    final bool isSelf = item['id'].toString() == auth.currentUser.id;
+    final name = item['displayName'] ?? item['display_name'] ?? 'Ẩn danh';
+    final xp = item['xp'] ?? 0;
+    final avatarEmoji = item['avatarUrl']?.toString().isNotEmpty == true ? item['avatarUrl'] : '👤';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -272,7 +321,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           SizedBox(
             width: 28,
             child: Text(
-              '#${item['rank']}',
+              '#$rank',
               style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.muted, fontSize: 14),
             ),
           ),
@@ -283,14 +332,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
             width: 38,
             height: 38,
             decoration: const BoxDecoration(color: AppTheme.bg, shape: BoxShape.circle),
-            child: Center(child: Text(item['avatar'], style: const TextStyle(fontSize: 20))),
+            child: Center(child: Text(avatarEmoji, style: const TextStyle(fontSize: 20))),
           ),
           const SizedBox(width: 14),
 
           // Name
           Expanded(
             child: Text(
-              item['name'] + (isSelf ? ' (Bạn)' : ''),
+              name + (isSelf ? ' (Bạn)' : ''),
               style: TextStyle(
                 fontWeight: isSelf ? FontWeight.bold : FontWeight.w600,
                 fontSize: 13,
@@ -301,7 +350,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
 
           // XP
           Text(
-            '${item['xp']} XP',
+            '$xp XP',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: AppTheme.indigo,

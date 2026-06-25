@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/services/api_service.dart';
 
 class CreatorStepData {
-  final int stepNumber;
+  int stepNumber;
   String instruction;
   String tip;
   String emojiPlaceholder;
@@ -26,6 +27,7 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
   final _formKey = GlobalKey<FormState>();
   
   final _nameController = TextEditingController();
+  final _emojiController = TextEditingController(text: '🦆');
   final _timeController = TextEditingController();
   final _paperSizeController = TextEditingController();
   final _paperTypeController = TextEditingController();
@@ -41,6 +43,7 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _emojiController.dispose();
     _timeController.dispose();
     _paperSizeController.dispose();
     _paperTypeController.dispose();
@@ -64,20 +67,88 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
       _steps.removeAt(index);
       // Re-index steps
       for (int i = 0; i < _steps.length; i++) {
-        // Just keeping ordering correct
+        _steps[i].stepNumber = i + 1;
       }
     });
   }
 
   void _submitModel() {
+    _saveOrPublish('approved');
+  }
+
+  void _saveOrPublish(String status) async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✨ Đã xuất bản mẫu "${_nameController.text}" thành công lên ứng dụng!'),
-          backgroundColor: AppTheme.teal,
-        ),
+      // Validate that we have at least 1 step with instruction
+      for (final step in _steps) {
+        if (step.instruction.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Vui lòng nhập chỉ dẫn cho tất cả các bước!'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+          return;
+        }
+      }
+
+      int categoryId = 1;
+      if (_category == 'Hoa cỏ') {
+        categoryId = 2;
+      } else if (_category == 'Đồ vật') {
+        categoryId = 3;
+      }
+
+      final payload = {
+        'name': _nameController.text.trim(),
+        'emoji': _emojiController.text.trim(),
+        'difficulty': _difficulty,
+        'estimatedTime': int.tryParse(_timeController.text.trim()) ?? 10,
+        'paperSize': _paperSizeController.text.trim(),
+        'paperType': _paperTypeController.text.trim(),
+        'categoryId': categoryId,
+        'status': status,
+        'steps': _steps.map((step) => {
+          'stepNumber': step.stepNumber,
+          'instruction': step.instruction.trim(),
+          'tip': step.tip.trim(),
+          'imageUrl': step.emojiPlaceholder == '📸' ? 'https://example.com/step_image.png' : '',
+        }).toList(),
+      };
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: AppTheme.indigo)),
       );
-      Navigator.pop(context);
+
+      final success = await ApiService.createOrigami(payload);
+      
+      if (mounted) {
+        Navigator.pop(context); // Close loading indicator
+      }
+
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(status == 'approved' 
+                ? '✨ Đã xuất bản mẫu "${_nameController.text}" thành công lên ứng dụng!'
+                : '💾 Đã gửi mẫu "${_nameController.text}" để phê duyệt!'),
+              backgroundColor: AppTheme.teal,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Lỗi khi lưu mẫu Origami mới!'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -98,15 +169,7 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('💾 Đã lưu bản nháp mẫu gấp!'),
-                  backgroundColor: AppTheme.indigoLight,
-                ),
-              );
-              Navigator.pop(context);
-            },
+            onPressed: () => _saveOrPublish('pending'),
             child: const Text('Lưu nháp', style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -134,15 +197,35 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Tên mẫu
-                    TextFormField(
-                      controller: _nameController,
-                      validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập tên mẫu' : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Tên mẫu Origami',
-                        hintText: 'Ví dụ: Hạc tiên, Cá rồng...',
-                        prefixIcon: Icon(Icons.title, color: AppTheme.muted),
-                      ),
+                    // Hàng 2 cột: Tên mẫu & Emoji biểu tượng
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: _nameController,
+                            validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập tên mẫu' : null,
+                            decoration: const InputDecoration(
+                              labelText: 'Tên mẫu Origami',
+                              hintText: 'Ví dụ: Hạc tiên, Cá rồng...',
+                              prefixIcon: Icon(Icons.title, color: AppTheme.muted),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 1,
+                          child: TextFormField(
+                            controller: _emojiController,
+                            validator: (value) => value == null || value.isEmpty ? 'Nhập emoji' : null,
+                            decoration: const InputDecoration(
+                              labelText: 'Emoji',
+                              hintText: '🦆',
+                              prefixIcon: Icon(Icons.emoji_emotions_outlined, color: AppTheme.muted),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
 
@@ -185,6 +268,7 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                           child: TextFormField(
                             controller: _timeController,
                             validator: (value) => value == null || value.isEmpty ? 'Nhập thời gian' : null,
+                            keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
                               labelText: 'Thời gian gấp (phút)',
                               hintText: 'Ví dụ: 15',
@@ -205,6 +289,16 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _paperTypeController,
+                      validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập loại giấy' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Loại giấy khuyên dùng',
+                        hintText: 'Ví dụ: Washi, Kami, Giấy xi măng...',
+                        prefixIcon: Icon(Icons.layers_outlined, color: AppTheme.muted),
+                      ),
                     ),
                   ],
                 ),

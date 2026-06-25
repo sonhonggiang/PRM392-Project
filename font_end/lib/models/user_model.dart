@@ -4,13 +4,15 @@ enum UserRole {
   creator,
   admin,
 }
-// nhớ vô đây mà phân lại quyền cho các người dùng
+
 class UserModel {
   final String id;
   final String email;
   final String displayName;
   final UserRole role;
   final String avatarUrl;
+  final int xp;
+  final int streakCount;
 
   UserModel({
     required this.id,
@@ -18,6 +20,8 @@ class UserModel {
     required this.displayName,
     this.role = UserRole.guest,
     this.avatarUrl = '',
+    this.xp = 0,
+    this.streakCount = 0,
   });
 
   // Mock users
@@ -26,6 +30,8 @@ class UserModel {
     email: 'admin@origami.com',
     displayName: 'Admin trang gấp giấy',
     role: UserRole.admin,
+    xp: 500,
+    streakCount: 5,
   );
 
   static final UserModel mockCreator = UserModel(
@@ -33,6 +39,8 @@ class UserModel {
     email: 'master@origami.com',
     displayName: 'Nghệ nhân Gấp Giấy',
     role: UserRole.creator,
+    xp: 250,
+    streakCount: 3,
   );
 
   static final UserModel mockUser = UserModel(
@@ -40,6 +48,8 @@ class UserModel {
     email: 'user@origami.com',
     displayName: 'Sơn Giang',
     role: UserRole.user,
+    xp: 120,
+    streakCount: 7,
   );
 
   static final UserModel mockGuest = UserModel(
@@ -47,5 +57,7 @@ class UserModel {
     email: '',
     displayName: '?????',
     role: UserRole.guest,
+    xp: 0,
+    streakCount: 0,
   );
 }
