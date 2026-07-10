@@ -20,12 +20,48 @@ class _LoginScreenState extends State<LoginScreen> {
   
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Giả lập Đăng nhập bằng Google
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isGoogleLoading = true);
+    
+    // Giả lập 1.5 giây để hiện vòng xoay "Google Auth"
+    await Future.delayed(const Duration(milliseconds: 1500));
+    
+    if (mounted) {
+      setState(() => _isGoogleLoading = false);
+      
+      // Tạo một đối tượng User giả từ Google
+      final googleUser = UserModel(
+        id: 'google_${DateTime.now().millisecondsSinceEpoch}',
+        email: 'sonhonggiang.google@gmail.com',
+        displayName: 'Giang Google',
+        role: UserRole.user,
+        avatarUrl: '',
+      );
+      
+      // Đăng nhập vào app bằng Mock Google User
+      context.read<AuthProvider>().loginAs(googleUser);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã kết nối với tài khoản Google! 🌐'),
+          backgroundColor: AppTheme.teal,
+        ),
+      );
+      
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    }
   }
 
   // Đăng nhập nhanh cho việc kiểm thử UI tĩnh (Guest)
@@ -54,11 +90,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await context.read<AuthProvider>().login(email, password);
+      final errorMessage = await context.read<AuthProvider>().login(email, password);
 
       if (mounted) {
         setState(() => _isLoading = false);
-        if (success) {
+        if (errorMessage == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Đăng nhập thành công! 🎉'),
@@ -70,8 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đăng nhập thất bại! Email hoặc mật khẩu không chính xác.'),
+            SnackBar(
+              content: Text(errorMessage),
               backgroundColor: AppTheme.red,
             ),
           );
@@ -215,15 +251,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Google Button (Chạy qua User real)
+              // Google Button (Chỉnh sửa để không dùng account cũ đã xóa)
               OutlinedButton.icon(
-                onPressed: () {
-                  _emailController.text = 'user@origami.com';
-                  _passwordController.text = '123456';
-                  _handleRealLogin();
-                },
-                icon: const Text('🌐', style: TextStyle(fontSize: 18)),
-                label: const Text('Tiếp tục với Google'),
+                onPressed: _isGoogleLoading ? null : _handleGoogleLogin,
+                icon: _isGoogleLoading 
+                    ? const SizedBox(
+                        height: 18, 
+                        width: 18, 
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.indigo)
+                      )
+                    : const Text('🌐', style: TextStyle(fontSize: 18)),
+                label: Text(_isGoogleLoading ? 'Đang kết nối...' : 'Tiếp tục với Google'),
               ),
               
               const SizedBox(height: 32),

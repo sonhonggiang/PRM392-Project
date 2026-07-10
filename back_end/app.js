@@ -4,6 +4,7 @@ const authRoutes = require('./routes/authRoutes');
 const origamiRoutes = require('./routes/origamiRoutes');
 const userRoutes = require('./routes/userRoutes');
 const statsRoutes = require('./routes/statsRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/origami', origamiRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin-manage', adminRoutes);
 app.use('/api', statsRoutes);
 
 // Route mặc định kiểm tra sức khỏe server (Health Check)

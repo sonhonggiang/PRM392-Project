@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../core/theme.dart';
 import '../../core/services/api_service.dart';
+import '../../core/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class CreatorStepData {
   int stepNumber;
   String instruction;
   String tip;
-  String emojiPlaceholder;
+  String? imagePath;
+  int estimatedDuration; // in minutes
 
   CreatorStepData({
     required this.stepNumber,
     this.instruction = '',
     this.tip = '',
-    this.emojiPlaceholder = '📄',
+    this.imagePath,
+    this.estimatedDuration = 1,
   });
 }
 
@@ -25,20 +31,45 @@ class CreatorWorkshopScreen extends StatefulWidget {
 
 class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _picker = ImagePicker();
   
   final _nameController = TextEditingController();
   final _emojiController = TextEditingController(text: '🦆');
   final _timeController = TextEditingController();
   final _paperSizeController = TextEditingController();
   final _paperTypeController = TextEditingController();
+  final _xpRewardController = TextEditingController(text: '50');
 
   String _difficulty = 'Dễ';
-  String _category = 'Động vật';
+  int? _selectedCategoryId;
+  List<dynamic> _categories = [];
+  bool _isLoadingCategories = true;
   
   final List<CreatorStepData> _steps = [
-    CreatorStepData(stepNumber: 1, emojiPlaceholder: '📐'),
-    CreatorStepData(stepNumber: 2, emojiPlaceholder: '📄'),
+    CreatorStepData(stepNumber: 1),
+    CreatorStepData(stepNumber: 2),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await ApiService.adminGetCategories();
+      setState(() {
+        _categories = cats;
+        if (cats.isNotEmpty) {
+          _selectedCategoryId = cats[0]['id'];
+        }
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingCategories = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -47,7 +78,38 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
     _timeController.dispose();
     _paperSizeController.dispose();
     _paperTypeController.dispose();
+    _xpRewardController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickStepImage(int index) async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _steps[index].imagePath = image.path;
+      });
+    }
+  }
+
+  void _showEmojiPicker() {
+    final emojis = ['🦆', ' Swan ', '🦢', '🦅', '🦉', '🦋', '🐠', '🦖', '🐲', '❤️', '🌸', '✈️', '⛵', '🏠'];
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5),
+          itemCount: emojis.length,
+          itemBuilder: (context, i) => InkWell(
+            onTap: () {
+              setState(() => _emojiController.text = emojis[i]);
+              Navigator.pop(context);
+            },
+            child: Center(child: Text(emojis[i], style: const TextStyle(fontSize: 32))),
+          ),
+        ),
+      ),
+    );
   }
 
   void _addNewStep() {
@@ -55,7 +117,6 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
       _steps.add(
         CreatorStepData(
           stepNumber: _steps.length + 1,
-          emojiPlaceholder: '📄',
         ),
       );
     });
@@ -78,6 +139,32 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
 
   void _saveOrPublish(String status) async {
     if (_formKey.currentState!.validate()) {
+      final auth = context.read<AuthProvider>();
+      int xpRewardLimit = 150; // Giới hạn mới
+      
+      // Giả định User Top 1 hoặc XP cao có giới hạn XP thưởng cao hơn
+      if (auth.currentUser.xp >= 5000) {
+        xpRewardLimit = 200;
+      }
+      
+      int requestedXp = int.tryParse(_xpRewardController.text) ?? 50;
+      if (requestedXp < 50 || requestedXp > xpRewardLimit) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Điểm thưởng phải nằm trong khoảng 50 - $xpRewardLimit XP!'),
+            backgroundColor: AppTheme.red,
+          ),
+        );
+        return;
+      }
+
+      if (_selectedCategoryId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('⚠️ Vui lòng chọn danh mục!'), backgroundColor: AppTheme.red),
+        );
+        return;
+      }
+
       // Validate that we have at least 1 step with instruction
       for (final step in _steps) {
         if (step.instruction.trim().isEmpty) {
@@ -91,13 +178,6 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
         }
       }
 
-      int categoryId = 1;
-      if (_category == 'Hoa cỏ') {
-        categoryId = 2;
-      } else if (_category == 'Đồ vật') {
-        categoryId = 3;
-      }
-
       final payload = {
         'name': _nameController.text.trim(),
         'emoji': _emojiController.text.trim(),
@@ -105,13 +185,15 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
         'estimatedTime': int.tryParse(_timeController.text.trim()) ?? 10,
         'paperSize': _paperSizeController.text.trim(),
         'paperType': _paperTypeController.text.trim(),
-        'categoryId': categoryId,
+        'categoryId': _selectedCategoryId,
         'status': status,
+        'xpReward': requestedXp,
         'steps': _steps.map((step) => {
           'stepNumber': step.stepNumber,
           'instruction': step.instruction.trim(),
           'tip': step.tip.trim(),
-          'imageUrl': step.emojiPlaceholder == '📸' ? 'https://example.com/step_image.png' : '',
+          'imageUrl': step.imagePath ?? '',
+          'duration': step.estimatedDuration,
         }).toList(),
       };
 
@@ -213,36 +295,51 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
-                          flex: 1,
-                          child: TextFormField(
-                            controller: _emojiController,
-                            validator: (value) => value == null || value.isEmpty ? 'Nhập emoji' : null,
-                            decoration: const InputDecoration(
-                              labelText: 'Emoji',
-                              hintText: '🦆',
-                              prefixIcon: Icon(Icons.emoji_emotions_outlined, color: AppTheme.muted),
+                        GestureDetector(
+                          onTap: _showEmojiPicker,
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: AppTheme.bg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Center(
+                              child: Text(_emojiController.text, style: const TextStyle(fontSize: 28)),
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
+                    
+                    // Thêm trường XP thưởng
+                    TextFormField(
+                      controller: _xpRewardController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Điểm thưởng (XP)',
+                        hintText: 'Mặc định: 50 XP',
+                        prefixIcon: Icon(Icons.stars_rounded, color: AppTheme.amber),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                    // Hàng 2 cột: Thể loại & Độ khó
                     Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _category,
-                            onChanged: (v) => setState(() => _category = v!),
-                            decoration: const InputDecoration(labelText: 'Danh mục'),
-                            items: const [
-                              DropdownMenuItem(value: 'Động vật', child: Text('Động vật 🐰')),
-                              DropdownMenuItem(value: 'Hoa cỏ', child: Text('Hoa cỏ 🌺')),
-                              DropdownMenuItem(value: 'Đồ vật', child: Text('Đồ vật ✈️')),
-                            ],
-                          ),
+                          child: _isLoadingCategories
+                              ? const Center(child: CircularProgressIndicator())
+                              : DropdownButtonFormField<int>(
+                                  value: _selectedCategoryId,
+                                  onChanged: (v) => setState(() => _selectedCategoryId = v!),
+                                  decoration: const InputDecoration(labelText: 'Danh mục'),
+                                  items: _categories.map((cat) => DropdownMenuItem<int>(
+                                    value: cat['id'],
+                                    child: Text('${cat['name']} ${cat['emoji'] ?? ''}'),
+                                  )).toList(),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -254,6 +351,7 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                               DropdownMenuItem(value: 'Dễ', child: Text('Dễ ⭐')),
                               DropdownMenuItem(value: 'Trung bình', child: Text('Trung bình ⭐⭐')),
                               DropdownMenuItem(value: 'Khó', child: Text('Khó ⭐⭐⭐')),
+                              DropdownMenuItem(value: 'Cực khó', child: Text('Cực khó 🔥')),
                             ],
                           ),
                         ),
@@ -361,17 +459,7 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                           children: [
                             // Thumbnail picker simulation
                             GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  step.emojiPlaceholder = '📸';
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('📸 Đã mở thư viện và chọn ảnh thành công!'),
-                                    backgroundColor: AppTheme.teal,
-                                  ),
-                                );
-                              },
+                              onTap: () => _pickStepImage(index),
                               child: Container(
                                 width: 80,
                                 height: 80,
@@ -381,14 +469,17 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                                   border: Border.all(color: AppTheme.border),
                                 ),
                                 child: Center(
-                                  child: step.emojiPlaceholder == '📸'
-                                      ? const Icon(Icons.check_circle, color: AppTheme.teal, size: 28)
-                                      : Column(
+                                  child: step.imagePath != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: Image.file(File(step.imagePath!), fit: BoxFit.cover, width: 80, height: 80),
+                                        )
+                                      : const Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Text(step.emojiPlaceholder, style: const TextStyle(fontSize: 22)),
-                                            const SizedBox(height: 4),
-                                            const Text('Chọn ảnh', style: TextStyle(fontSize: 9, color: AppTheme.muted)),
+                                            Icon(Icons.add_a_photo_outlined, color: AppTheme.muted, size: 22),
+                                            SizedBox(height: 4),
+                                            Text('Chọn ảnh', style: TextStyle(fontSize: 9, color: AppTheme.muted)),
                                           ],
                                         ),
                                 ),
@@ -409,6 +500,18 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                                       labelText: 'Chỉ dẫn gấp',
                                       hintText: 'Gấp chéo 2 mép giấy...',
                                       contentPadding: EdgeInsets.all(10),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  TextFormField(
+                                    initialValue: step.estimatedDuration.toString(),
+                                    onChanged: (val) => step.estimatedDuration = int.tryParse(val) ?? 1,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Thời gian bước này (phút)',
+                                      hintText: 'Ví dụ: 2',
+                                      contentPadding: EdgeInsets.all(10),
+                                      prefixIcon: Icon(Icons.timer_outlined, size: 16),
                                     ),
                                   ),
                                   const SizedBox(height: 10),

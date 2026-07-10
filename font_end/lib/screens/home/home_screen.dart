@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/api_service.dart';
 import '../../models/user_model.dart';
 import '../origami/creator_workshop_screen.dart';
 import 'tabs/home_tab.dart';
@@ -76,7 +77,48 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  final List<AppNotification> _notifs = List.from(_notifications);
+  List<AppNotification> _notifs = [];
+  bool _isLoadingNotifs = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.currentUser.role == UserRole.guest) return;
+
+    setState(() => _isLoadingNotifs = true);
+    try {
+      final data = await ApiService.getNotifications();
+      setState(() {
+        _notifs = data.map((n) => AppNotification(
+          id: n['id'].toString(),
+          type: n['type'] ?? 'info',
+          title: n['title'] ?? '',
+          body: n['message'] ?? '',
+          emoji: n['emoji'] ?? '🔔',
+          time: _formatTime(n['created_at']),
+          isRead: n['is_read'] == 1,
+        )).toList();
+      });
+    } catch (e) {
+      print('Lỗi tải thông báo: $e');
+    } finally {
+      setState(() => _isLoadingNotifs = false);
+    }
+  }
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null) return 'Vừa xong';
+    final date = DateTime.parse(dateStr);
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
+    return '${diff.inDays} ngày trước';
+  }
 
   int get _unreadCount => _notifs.where((n) => !n.isRead).length;
 
@@ -84,18 +126,24 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _currentIndex = 1);
   }
 
-  void _markAllRead() {
-    setState(() {
-      for (final n in _notifs) {
+  void _markAllRead() async {
+    for (final n in _notifs) {
+      if (!n.isRead) {
+        await ApiService.markNotificationRead(n.id);
         n.isRead = true;
       }
-    });
+    }
+    setState(() {});
   }
 
-  void _markRead(String id) {
-    setState(() {
-      _notifs.firstWhere((n) => n.id == id).isRead = true;
-    });
+  void _markRead(String id) async {
+    final n = _notifs.firstWhere((n) => n.id == id);
+    if (!n.isRead) {
+      await ApiService.markNotificationRead(id);
+      setState(() {
+        n.isRead = true;
+      });
+    }
   }
 
   // ── Chuông thông báo ──────────────────────────────────────────────────────
@@ -325,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
       body: tabs[_currentIndex],
-      floatingActionButton: user.role == UserRole.admin
+      floatingActionButton: (user.role == UserRole.admin || user.xp >= 1000)
           ? FloatingActionButton.extended(
               onPressed: () {
                 Navigator.push(

@@ -13,40 +13,51 @@ class AuthProvider extends ChangeNotifier {
   UserRole get currentRole => currentUser.role;
 
   // Đăng nhập thực tế qua API
-  Future<bool> login(String email, String password) async {
-    final data = await ApiService.login(email, password);
-    if (data != null && data['user'] != null) {
-      final userJson = data['user'];
-      
-      // Chuyển đổi chuỗi role thành UserRole enum
-      UserRole parsedRole = UserRole.user;
-      if (userJson['role'] == 'admin') {
-        parsedRole = UserRole.admin;
-      } else if (userJson['role'] == 'creator') {
-        parsedRole = UserRole.creator;
+  // Trả về null nếu thành công, trả về chuỗi lỗi nếu thất bại
+  Future<String?> login(String email, String password) async {
+    try {
+      final data = await ApiService.login(email, password);
+      if (data != null) {
+        if (data.containsKey('error')) {
+          return data['error'];
+        }
+        
+        if (data['user'] != null) {
+          final userJson = data['user'];
+          UserRole parsedRole = UserRole.user;
+          if (userJson['role'] == 'admin') {
+            parsedRole = UserRole.admin;
+          } else if (userJson['role'] == 'creator') {
+            parsedRole = UserRole.creator;
+          }
+
+          _currentUser = UserModel(
+            id: userJson['id'].toString(),
+            email: userJson['email'],
+            displayName: userJson['displayName'] ?? userJson['display_name'] ?? '',
+            avatarUrl: userJson['avatarUrl'] ?? userJson['avatar_url'] ?? '',
+            role: parsedRole,
+            xp: userJson['xp'] ?? 0,
+            streakCount: userJson['streakCount'] ?? userJson['streak_count'] ?? 0,
+          );
+          notifyListeners();
+          return null; // Thành công
+        }
       }
-
-      _currentUser = UserModel(
-        id: userJson['id'].toString(),
-        email: userJson['email'],
-        displayName: userJson['displayName'] ?? userJson['display_name'] ?? '',
-        avatarUrl: userJson['avatarUrl'] ?? userJson['avatar_url'] ?? '',
-        role: parsedRole,
-        xp: userJson['xp'] ?? 0,
-        streakCount: userJson['streakCount'] ?? userJson['streak_count'] ?? 0,
-      );
-
-
-      notifyListeners();
-      return true;
+      return "Lỗi đăng nhập không xác định";
+    } catch (e) {
+      return "Không thể kết nối đến máy chủ. Kiểm tra IP: ${ApiService.baseUrl}";
     }
-    return false;
   }
 
   // Đăng ký thực tế qua API
-  Future<bool> register(String email, String password, String displayName) async {
+  // Trả về null nếu thành công, trả về chuỗi lỗi nếu thất bại
+  Future<String?> register(String email, String password, String displayName) async {
     final data = await ApiService.register(email, password, displayName);
-    return data != null;
+    if (data != null && data.containsKey('error')) {
+      return data['error'];
+    }
+    return data != null ? null : "Lỗi không xác định";
   }
 
   // Giả lập chuyển đổi vai trò nhanh để test UI (Admin/User/Guest)
@@ -59,6 +70,32 @@ class AuthProvider extends ChangeNotifier {
       ApiService.token = 'mock_token_${user.id}';
     }
     notifyListeners();
+  }
+
+  // Cập nhật thông tin cá nhân mới nhất từ server
+  Future<void> refreshProfile() async {
+    if (_currentUser == null || _currentUser!.role == UserRole.guest) return;
+    
+    final userJson = await ApiService.getUserProfile();
+    if (userJson != null) {
+      UserRole parsedRole = UserRole.user;
+      if (userJson['role'] == 'admin') {
+        parsedRole = UserRole.admin;
+      } else if (userJson['role'] == 'creator') {
+        parsedRole = UserRole.creator;
+      }
+
+      _currentUser = UserModel(
+        id: userJson['id'].toString(),
+        email: userJson['email'],
+        displayName: userJson['display_name'] ?? userJson['displayName'] ?? '',
+        avatarUrl: userJson['avatar_url'] ?? userJson['avatarUrl'] ?? '',
+        role: parsedRole,
+        xp: userJson['xp'] ?? 0,
+        streakCount: userJson['streak_count'] ?? userJson['streakCount'] ?? 0,
+      );
+      notifyListeners();
+    }
   }
 
   // Đăng xuất

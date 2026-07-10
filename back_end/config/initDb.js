@@ -57,6 +57,7 @@ async function initializeDatabase() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) NOT NULL UNIQUE,
         emoji VARCHAR(10) NOT NULL,
+        image_url VARCHAR(255) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -75,7 +76,7 @@ async function initializeDatabase() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         emoji VARCHAR(10) NOT NULL,
-        difficulty ENUM('Dễ', 'Trung bình', 'Khó') DEFAULT 'Dễ',
+        difficulty ENUM('Dễ', 'Trung bình', 'Khó', 'Cực khó') DEFAULT 'Dễ',
         estimated_time INT NOT NULL COMMENT 'Đơn vị: phút',
         paper_size VARCHAR(50) DEFAULT '15x15 cm',
         paper_type VARCHAR(100) DEFAULT 'Washi',
@@ -99,6 +100,7 @@ async function initializeDatabase() {
         instruction TEXT NOT NULL,
         tip TEXT DEFAULT NULL,
         image_url VARCHAR(255) DEFAULT '',
+        estimated_duration INT DEFAULT 0 COMMENT 'Thời gian gợi ý cho bước này (giây)',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (origami_id) REFERENCES origami_models(id) ON DELETE CASCADE,
         UNIQUE KEY uq_origami_step (origami_id, step_number)
@@ -124,6 +126,7 @@ async function initializeDatabase() {
         origami_id INT NOT NULL,
         current_step INT DEFAULT 1,
         is_completed TINYINT(1) DEFAULT 0,
+        completion_duration INT DEFAULT 0 COMMENT 'Thời gian hoàn thành tính bằng giây',
         completed_at TIMESTAMP NULL DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -201,14 +204,28 @@ async function initializeDatabase() {
       );
     `);
 
+    // 15. Tạo bảng notifications
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type VARCHAR(50) DEFAULT 'info',
+        emoji VARCHAR(10) DEFAULT '🔔',
+        is_read TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
     // 14. Kiểm tra xem có dữ liệu Origami mẫu chưa, nếu chưa có thì chèn vài mẫu mẫu cho đẹp mắt
     const [origamiCount] = await connection.query('SELECT COUNT(*) as count FROM origami_models');
     if (origamiCount[0].count === 0) {
       console.log('🌱 Đang chèn các mẫu Origami mẫu...');
       
       // Tạo một admin user mặc định để sở hữu các bài mẫu (Mật khẩu: 123456)
-      // password_hash của '123456' sử dụng bcrypt là '$2a$10$iMh7i92sTkyr45/yM.hZ9.fH0u1f4PZzQ6.J8wTteVzHh/lJqM3aO' (hoặc tương tự)
-      const mockAdminPasswordHash = '$2a$10$iMh7i92sTkyr45/yM.hZ9.fH0u1f4PZzQ6.J8wTteVzHh/lJqM3aO';
+      const mockAdminPasswordHash = '$2a$10$sDmHJ96MVOHjhJZUT79Ki.Xd40DvI2Xlt8silKpnrl7MHjLwvvh6m';
       const [adminResult] = await connection.query(
         "INSERT IGNORE INTO users (id, email, password_hash, display_name, role, xp) VALUES (1, 'admin@origami.com', ?, 'Admin trang gấp giấy', 'admin', 500)",
         [mockAdminPasswordHash]

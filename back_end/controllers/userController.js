@@ -61,6 +61,80 @@ async function checkAndUnlockBadges(userId) {
   return unlockedBadges;
 }
 
+// 5. Lấy danh sách huy hiệu của user
+async function getUserBadges(req, res) {
+  const userId = req.user.id;
+  try {
+    const [allBadges] = await db.query('SELECT * FROM badges');
+    const [userBadges] = await db.query('SELECT badge_id, earned_at FROM user_badges WHERE user_id = ?', [userId]);
+
+    const userBadgeIds = userBadges.map(b => b.badge_id);
+
+    const result = allBadges.map(badge => ({
+      ...badge,
+      earned: userBadgeIds.includes(badge.id),
+      earned_at: userBadges.find(ub => ub.badge_id === badge.id)?.earned_at || null
+    }));
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi lấy huy hiệu!', error: error.message });
+  }
+}
+
+// 6. Lấy phân tích học tập (XP, Completed, Favorites, Streak)
+async function getUserAnalytics(req, res) {
+  const userId = req.user.id;
+  try {
+    const [user] = await db.query('SELECT xp, streak_count FROM users WHERE id = ?', [userId]);
+    const [completed] = await db.query('SELECT COUNT(*) as count FROM user_progress WHERE user_id = ? AND is_completed = 1', [userId]);
+    const [favorites] = await db.query('SELECT COUNT(*) as count FROM favorites WHERE user_id = ?', [userId]);
+    const [badges] = await db.query('SELECT COUNT(*) as count FROM user_badges WHERE user_id = ?', [userId]);
+
+    res.status(200).json({
+      xp: user[0].xp,
+      streakCount: user[0].streak_count,
+      completedCount: completed[0].count,
+      favoritesCount: favorites[0].count,
+      badgesCount: badges[0].count
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi lấy phân tích!', error: error.message });
+  }
+}
+
+// 0. Lấy thông tin cá nhân của User (XP, Streak,...)
+async function getProfile(req, res) {
+  const userId = req.user.id;
+  try {
+    const [rows] = await db.query(
+      'SELECT id, email, display_name, role, avatar_url, xp, streak_count FROM users WHERE id = ?',
+      [userId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi lấy thông tin cá nhân!', error: error.message });
+  }
+}
+
+// 0.1 Cập nhật thông tin cá nhân
+async function updateProfile(req, res) {
+  const userId = req.user.id;
+  const { displayName, avatarUrl } = req.body;
+  try {
+    await db.query(
+      'UPDATE users SET display_name = ?, avatar_url = ? WHERE id = ?',
+      [displayName, avatarUrl, userId]
+    );
+    res.status(200).json({ message: 'Cập nhật hồ sơ thành công!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi cập nhật hồ sơ!', error: error.message });
+  }
+}
+
 // 1. Lấy danh sách mẫu yêu thích
 async function getFavorites(req, res) {
   const userId = req.user.id;
@@ -137,7 +211,7 @@ async function getProgress(req, res) {
 async function updateProgress(req, res) {
   const userId = req.user.id;
   const { origamiId } = req.params;
-  const { currentStep, isCompleted } = req.body;
+  const { currentStep, isCompleted, duration } = req.body;
 
   if (currentStep === undefined || isCompleted === undefined) {
     return res.status(400).json({ message: 'Vui lòng cung cấp currentStep và isCompleted!' });
@@ -160,13 +234,14 @@ async function updateProgress(req, res) {
 
     // Chèn hoặc cập nhật tiến trình
     await db.query(
-      `INSERT INTO user_progress (user_id, origami_id, current_step, is_completed, completed_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO user_progress (user_id, origami_id, current_step, is_completed, completion_duration, completed_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE 
          current_step = VALUES(current_step),
          is_completed = VALUES(is_completed),
+         completion_duration = IF(VALUES(is_completed) = 1, VALUES(completion_duration), completion_duration),
          completed_at = IF(VALUES(is_completed) = 1, NOW(), completed_at)`,
-      [userId, origamiId, currentStep, isCompleted ? 1 : 0, completedAt]
+      [userId, origamiId, currentStep, isCompleted ? 1 : 0, duration || 0, completedAt]
     );
 
     let xpReward = 0;
@@ -177,8 +252,25 @@ async function updateProgress(req, res) {
       xpReward = 50; // Thưởng 50 XP khi hoàn thành gấp 1 mẫu
       await db.query('UPDATE users SET xp = xp + ? WHERE id = ?', [xpReward, userId]);
       
+      // Tạo thông báo hoàn thành
+      await db.query(
+        'INSERT INTO notifications (user_id, title, message, type, emoji) VALUES (?, ?, ?, ?, ?)',
+        [userId, 'Tuyệt vời!', `Bạn đã hoàn thành một mẫu gấp mới và nhận được ${xpReward} XP.`, 'badge', '🏆']
+      );
+
       // Kiểm tra và mở khóa huy hiệu
       unlockedBadges = await checkAndUnlockBadges(userId);
+      if (unlockedBadges.length > 0) {
+        for (const badgeId of unlockedBadges) {
+          const [badgeInfo] = await db.query('SELECT name, emoji FROM badges WHERE id = ?', [badgeId]);
+          if (badgeInfo.length > 0) {
+            await db.query(
+              'INSERT INTO notifications (user_id, title, message, type, emoji) VALUES (?, ?, ?, ?, ?)',
+              [userId, 'Huy hiệu mới!', `Bạn vừa mở khóa huy hiệu "${badgeInfo[0].name}".`, 'badge', badgeInfo[0].emoji]
+            );
+          }
+        }
+      }
     }
 
     res.status(200).json({
@@ -193,9 +285,44 @@ async function updateProgress(req, res) {
   }
 }
 
+// 7. Lấy danh sách thông báo của user
+async function getNotifications(req, res) {
+  const userId = req.user.id;
+  try {
+    const [rows] = await db.query(
+      'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
+      [userId]
+    );
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi lấy thông báo!', error: error.message });
+  }
+}
+
+// 8. Đánh dấu đã đọc thông báo
+async function markNotificationRead(req, res) {
+  const userId = req.user.id;
+  const { id } = req.params;
+  try {
+    await db.query(
+      'UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+    res.status(200).json({ message: 'Đã đánh dấu thông báo là đã đọc.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi cập nhật thông báo!', error: error.message });
+  }
+}
+
 module.exports = {
+  getProfile,
+  updateProfile,
   getFavorites,
   toggleFavorite,
   getProgress,
-  updateProgress
+  updateProgress,
+  getUserBadges,
+  getUserAnalytics,
+  getNotifications,
+  markNotificationRead
 };

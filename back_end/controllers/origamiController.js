@@ -78,7 +78,7 @@ async function getOrigamiById(req, res) {
 async function createOrigami(req, res) {
   const { 
     name, emoji, difficulty, estimatedTime, 
-    paperSize, paperType, categoryId, status, steps 
+    paperSize, paperType, categoryId, status, steps, xpReward
   } = req.body;
 
   const creatorId = req.user.id; // Lấy từ authMiddleware
@@ -98,9 +98,9 @@ async function createOrigami(req, res) {
     // 1. Chèn thông tin chung vào bảng origami_models
     const [modelResult] = await connection.query(
       `INSERT INTO origami_models 
-       (name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, emoji, difficulty || 'Dễ', estimatedTime, paperSize || '15x15 cm', paperType || 'Washi', categoryId, creatorId, finalStatus]
+       (name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status, xp_reward)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, emoji, difficulty || 'Dễ', estimatedTime, paperSize || '15x15 cm', paperType || 'Washi', categoryId, creatorId, finalStatus, xpReward || 50]
     );
 
     const origamiId = modelResult.insertId;
@@ -110,9 +110,9 @@ async function createOrigami(req, res) {
       const step = steps[i];
       const stepNum = step.stepNumber || (i + 1);
       await connection.query(
-        `INSERT INTO origami_steps (origami_id, step_number, instruction, tip, image_url) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [origamiId, stepNum, step.instruction, step.tip || '', step.imageUrl || '']
+        `INSERT INTO origami_steps (origami_id, step_number, instruction, tip, image_url, estimated_duration)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [origamiId, stepNum, step.instruction, step.tip || '', step.imageUrl || '', step.duration || 0]
       );
     }
 

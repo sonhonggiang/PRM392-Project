@@ -58,10 +58,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       // 1. Gọi API Đăng ký tài khoản
-      final registerSuccess = await context.read<AuthProvider>().register(email, password, name);
+      final errorResult = await context.read<AuthProvider>().register(email, password, name);
 
       if (mounted) {
-        if (registerSuccess) {
+        if (errorResult == null) {
           // 2. Tự động gửi mã OTP xác nhận về email sau khi đăng ký thành công
           await ApiService.sendOTP(email);
           
@@ -81,8 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đăng ký không thành công! Email có thể đã được sử dụng.'),
+            SnackBar(
+              content: Text(errorResult),
               backgroundColor: AppTheme.red,
             ),
           );

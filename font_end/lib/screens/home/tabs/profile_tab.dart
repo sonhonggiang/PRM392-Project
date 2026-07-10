@@ -9,6 +9,7 @@ import '../../../models/user_model.dart';
 import '../analytics_badges_screen.dart';
 import '../leaderboard_screen.dart';
 import '../admin_approval_screen.dart';
+import '../admin_management_screen.dart';
 
 // ─── Profile Tab chính ───────────────────────────────────────────────────────
 class ProfileTab extends StatefulWidget {
@@ -316,6 +317,9 @@ class _ProfileTabState extends State<ProfileTab> {
                           _buildMenuDivider(),
                           _buildMenuAction(context, Icons.admin_panel_settings_rounded, 'Phê duyệt mẫu mới',
                             AppTheme.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminApprovalScreen())).then((_) => _loadProfileData())),
+                          _buildMenuDivider(),
+                          _buildMenuAction(context, Icons.settings_suggest_rounded, 'Quản lý hệ thống (CRUD)',
+                            AppTheme.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminManagementScreen())).then((_) => _loadProfileData())),
                         ],
                         _buildMenuDivider(),
                         _buildMenuAction(context, Icons.settings_rounded, 'Cài đặt tài khoản',
@@ -580,6 +584,15 @@ class _ProfileTabState extends State<ProfileTab> {
                           final isCompleted = item['is_completed'] == 1 || item['isCompleted'] == true;
                           final statusText = isCompleted ? 'Hoàn thành' : 'Đang học (Bước ${item['current_step'] ?? item['currentStep']})';
                           
+                          // Format duration if available
+                          String durationText = '';
+                          if (isCompleted && item['completion_duration'] != null && item['completion_duration'] > 0) {
+                            int totalSecs = item['completion_duration'];
+                            int mins = totalSecs ~/ 60;
+                            int secs = totalSecs % 60;
+                            durationText = ' • ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+                          }
+
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(14),
@@ -602,7 +615,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                     children: [
                                       Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                       const SizedBox(height: 3),
-                                      Text(statusText,
+                                      Text('$statusText$durationText',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: isCompleted ? AppTheme.teal : AppTheme.amber,
@@ -706,15 +719,25 @@ class _ProfileTabState extends State<ProfileTab> {
               decoration: BoxDecoration(color: AppTheme.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.border)),
               child: Column(
                 children: [
-                  _settingsTile(Icons.person_outline_rounded, 'Chỉnh sửa hồ sơ', AppTheme.indigo),
+                  _settingsTile(Icons.person_outline_rounded, 'Chỉnh sửa hồ sơ', AppTheme.indigo, () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng Chỉnh sửa hồ sơ sẽ sớm ra mắt!')));
+                  }),
                   _divider(),
-                  _settingsTile(Icons.notifications_outlined, 'Thông báo', AppTheme.teal),
+                  _settingsTile(Icons.notifications_outlined, 'Thông báo', AppTheme.teal, () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cài đặt thông báo đang được cập nhật.')));
+                  }),
                   _divider(),
-                  _settingsTile(Icons.lock_outline_rounded, 'Đổi mật khẩu', AppTheme.amber),
+                  _settingsTile(Icons.lock_outline_rounded, 'Đổi mật khẩu', AppTheme.amber, () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng sử dụng tính năng Quên mật khẩu tại màn hình đăng nhập.')));
+                  }),
                   _divider(),
-                  _settingsTile(Icons.language_rounded, 'Ngôn ngữ: Tiếng Việt', AppTheme.muted),
-                  _divider(),
-                  _settingsTile(Icons.delete_outline_rounded, 'Xóa tài khoản', AppTheme.red),
+                  _settingsTile(Icons.language_rounded, 'Ngôn ngữ: Tiếng Việt', AppTheme.muted, () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hiện tại ứng dụng chỉ hỗ trợ Tiếng Việt.')));
+                  }),
                 ],
               ),
             ),
@@ -756,15 +779,15 @@ class _ProfileTabState extends State<ProfileTab> {
               decoration: BoxDecoration(color: AppTheme.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.border)),
               child: Column(
                 children: [
-                  _settingsTile(Icons.quiz_outlined, 'Câu hỏi thường gặp (FAQ)', AppTheme.indigo),
+                  _settingsTile(Icons.quiz_outlined, 'Câu hỏi thường gặp (FAQ)', AppTheme.indigo, () {}),
                   _divider(),
-                  _settingsTile(Icons.chat_bubble_outline_rounded, 'Liên hệ hỗ trợ', AppTheme.teal),
+                  _settingsTile(Icons.chat_bubble_outline_rounded, 'Liên hệ hỗ trợ', AppTheme.teal, () {}),
                   _divider(),
-                  _settingsTile(Icons.bug_report_outlined, 'Báo lỗi', AppTheme.red),
+                  _settingsTile(Icons.bug_report_outlined, 'Báo lỗi', AppTheme.red, () {}),
                   _divider(),
-                  _settingsTile(Icons.star_outline_rounded, 'Đánh giá ứng dụng', AppTheme.amber),
+                  _settingsTile(Icons.star_outline_rounded, 'Đánh giá ứng dụng', AppTheme.amber, () {}),
                   _divider(),
-                  _settingsTile(Icons.info_outline_rounded, 'Về ứng dụng v1.0.0', AppTheme.muted),
+                  _settingsTile(Icons.info_outline_rounded, 'Về ứng dụng v1.0.0', AppTheme.muted, () {}),
                 ],
               ),
             ),
@@ -784,12 +807,12 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _settingsTile(IconData icon, String title, Color color) {
+  Widget _settingsTile(IconData icon, String title, Color color, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: color, size: 22),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
       trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.muted, size: 20),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 

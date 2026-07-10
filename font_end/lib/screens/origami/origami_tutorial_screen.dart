@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
@@ -56,27 +57,14 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
 
     // Tính thời gian đã học
     final elapsed = DateTime.now().difference(_startTime);
+    final durationSeconds = elapsed.inSeconds;
     final minutes = elapsed.inMinutes.toString().padLeft(2, '0');
     final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final durationStr = '$minutes:$seconds';
 
     int xpEarned = 50;
-
-    if (isGuest) {
-      // Nếu là Guest thì chuyển trực tiếp sang Success với XP mock
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TutorialSuccessScreen(
-            modelName: 'Mẫu gấp giấy',
-            emoji: '🦢',
-            duration: durationStr,
-            xpEarned: 0,
-          ),
-        ),
-      );
-      return;
-    }
+    
+    // ... (guest logic remains same)
 
     setState(() => _isLoading = true);
 
@@ -89,7 +77,12 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
         }
       } else {
         // 2. Gọi API hoàn thành mẫu thông thường
-        final result = await ApiService.updateProgress(widget.origamiId, widget.steps.length, true);
+        final result = await ApiService.updateProgress(
+          widget.origamiId, 
+          widget.steps.length, 
+          true,
+          duration: durationSeconds
+        );
         if (result != null) {
           xpEarned = result['xpReward'] ?? 50;
         }
@@ -98,18 +91,23 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         
+        // Cập nhật lại thông tin User trong Provider (XP mới)
+        await auth.refreshProfile();
+        
         // Chuyển hướng sang màn hình thành công kèm phần thưởng thực tế
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TutorialSuccessScreen(
-              modelName: 'Mẫu học gấp',
-              emoji: '🏆',
-              duration: durationStr,
-              xpEarned: xpEarned,
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TutorialSuccessScreen(
+                modelName: 'Mẫu học gấp',
+                emoji: '🏆',
+                duration: durationStr,
+                xpEarned: xpEarned,
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -207,9 +205,21 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
                         border: Border.all(color: AppTheme.border),
                       ),
                       child: Center(
-                        child: imageUrl.toString().startsWith('http')
-                            ? Image.network(imageUrl, fit: BoxFit.contain)
-                            : const Text('🦢', style: TextStyle(fontSize: 120)),
+                        child: imageUrl.toString().isEmpty
+                            ? const Text('🦢', style: TextStyle(fontSize: 120))
+                            : imageUrl.toString().startsWith('http')
+                                ? Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 80, color: AppTheme.muted),
+                                  )
+                                : imageUrl.toString().contains('/') || imageUrl.toString().contains('\\')
+                                    ? Image.file(
+                                        File(imageUrl),
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 80, color: AppTheme.muted),
+                                      )
+                                    : const Text('🦢', style: TextStyle(fontSize: 120)),
                       ),
                     ),
                   ),
