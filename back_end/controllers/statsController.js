@@ -1,28 +1,66 @@
 const db = require('../config/db');
 
-// 1. Lấy bảng xếp hạng (Leaderboard) theo XP
+// 1. Lấy bảng xếp hạng (Leaderboard) theo XP học tập thực tế
 async function getLeaderboard(req, res) {
-  const { type } = req.query; // weekly, monthly, alltime
+  const { type } = req.query; // daily, weekly, monthly, alltime
+  const limit = 20;
 
   try {
-    // Để làm bảng xếp hạng đơn giản và tối ưu, ta sắp xếp theo điểm XP tích lũy
-    // Trong môi trường production, có thể lưu lịch sử XP theo tuần/tháng, ở đây xếp hạng theo tổng XP
-    const limit = 20;
-    const [rows] = await db.query(
-      `SELECT id, display_name as displayName, avatar_url as avatarUrl, xp, streak_count as streakCount
-       FROM users
-       WHERE role != 'admin'
-       ORDER BY xp DESC
-       LIMIT ?`,
-      [limit]
-    );
+    let sql = '';
+    let params = [limit];
 
+    if (type === 'daily') {
+      sql = `
+        SELECT u.id, u.display_name as displayName, u.avatar_url as avatarUrl, 
+               COALESCE(SUM(dls.duration_minutes * 10), 0) as xp, u.streak_count as streakCount
+        FROM users u
+        LEFT JOIN daily_learning_statistics dls ON u.id = dls.user_id AND dls.date = CURDATE()
+        WHERE u.role != 'admin'
+        GROUP BY u.id
+        ORDER BY xp DESC, u.xp DESC
+        LIMIT ?
+      `;
+    } else if (type === 'weekly') {
+      sql = `
+        SELECT u.id, u.display_name as displayName, u.avatar_url as avatarUrl, 
+               COALESCE(SUM(dls.duration_minutes * 10), 0) as xp, u.streak_count as streakCount
+        FROM users u
+        LEFT JOIN daily_learning_statistics dls ON u.id = dls.user_id AND dls.date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        WHERE u.role != 'admin'
+        GROUP BY u.id
+        ORDER BY xp DESC, u.xp DESC
+        LIMIT ?
+      `;
+    } else if (type === 'monthly') {
+      sql = `
+        SELECT u.id, u.display_name as displayName, u.avatar_url as avatarUrl, 
+               COALESCE(SUM(dls.duration_minutes * 10), 0) as xp, u.streak_count as streakCount
+        FROM users u
+        LEFT JOIN daily_learning_statistics dls ON u.id = dls.user_id AND dls.date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+        WHERE u.role != 'admin'
+        GROUP BY u.id
+        ORDER BY xp DESC, u.xp DESC
+        LIMIT ?
+      `;
+    } else {
+      // alltime
+      sql = `
+        SELECT id, display_name as displayName, avatar_url as avatarUrl, xp, streak_count as streakCount
+        FROM users
+        WHERE role != 'admin'
+        ORDER BY xp DESC
+        LIMIT ?
+      `;
+    }
+
+    const [rows] = await db.query(sql, params);
     res.status(200).json(rows);
   } catch (error) {
     console.error('Lỗi lấy bảng xếp hạng:', error);
     res.status(500).json({ message: 'Không thể lấy bảng xếp hạng!', error: error.message });
   }
 }
+
 
 // 2. Lấy thống kê chi tiết hành trình học tập (vẽ biểu đồ)
 async function getUserAnalytics(req, res) {
@@ -203,9 +241,9 @@ async function completeDailyChallenge(req, res) {
       [userId, challenge.id]
     );
 
-    // 4. Cộng điểm XP thưởng
+    // 4. Cộng điểm XP thưởng và tặng 1 Huy chương ngày
     const rewardXp = challenge.reward_xp || 100;
-    await db.query("UPDATE users SET xp = xp + ? WHERE id = ?", [rewardXp, userId]);
+    await db.query("UPDATE users SET xp = xp + ?, daily_medals = daily_medals + 1 WHERE id = ?", [rewardXp, userId]);
 
     // 5. Cập nhật Streak ngày liên tiếp của người dùng
     const [userRows] = await db.query("SELECT streak_count, last_active_date FROM users WHERE id = ?", [userId]);
@@ -226,10 +264,19 @@ async function completeDailyChallenge(req, res) {
       newStreak = 1;
     }
 
-    await db.query(
-      "UPDATE users SET streak_count = ?, last_active_date = ? WHERE id = ?",
-      [newStreak, todayStr, userId]
-    );
+    // Tặng cúp tuần khi đạt chuỗi 7 ngày liên tiếp
+    if (newStreak > 0 && newStreak % 7 === 0) {
+      await db.query(
+        "UPDATE users SET streak_count = ?, last_active_date = ?, weekly_trophies = weekly_trophies + 1 WHERE id = ?",
+        [newStreak, todayStr, userId]
+      );
+    } else {
+      await db.query(
+        "UPDATE users SET streak_count = ?, last_active_date = ? WHERE id = ?",
+        [newStreak, todayStr, userId]
+      );
+    }
+
 
     // 6. Kiểm tra mở khóa huy hiệu (Đặc biệt: chuỗi 7 ngày)
     let unlockedBadges = [];
@@ -263,10 +310,35 @@ async function completeDailyChallenge(req, res) {
   }
 }
 
+// 6. Lấy lịch sử hoàn thành thử thách hàng ngày trong tháng hiện tại
+async function getDailyChallengeHistory(req, res) {
+  const userId = req.user.id;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-indexed
+
+  try {
+    const monthPattern = `${year}-${month.toString().padStart(2, '0')}-%`;
+    const [rows] = await db.query(
+      `SELECT dc.date, COALESCE(udl.is_completed, 0) as is_completed
+       FROM daily_challenges dc
+       LEFT JOIN user_daily_challenge_logs udl ON dc.id = udl.challenge_id AND udl.user_id = ?
+       WHERE dc.date LIKE ?`,
+      [userId, monthPattern]
+    );
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Lỗi lấy lịch sử thử thách:', error);
+    res.status(500).json({ message: 'Lỗi lấy lịch sử thử thách!', error: error.message });
+  }
+}
+
 module.exports = {
   getLeaderboard,
   getUserAnalytics,
   getUserBadges,
   getDailyChallenge,
-  completeDailyChallenge
+  completeDailyChallenge,
+  getDailyChallengeHistory,
 };
+

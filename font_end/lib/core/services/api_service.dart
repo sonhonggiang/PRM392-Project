@@ -30,12 +30,17 @@ class ApiService {
     }
   }
 
-  static Future<bool> updateProfile(String displayName, String avatarUrl) async {
+  static Future<bool> updateProfile(String displayName, String avatarUrl, {String? email, String? password}) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/users/profile'),
         headers: getHeaders(),
-        body: jsonEncode({'displayName': displayName, 'avatarUrl': avatarUrl}),
+        body: jsonEncode({
+          'displayName': displayName,
+          'avatarUrl': avatarUrl,
+          if (email != null) 'email': email,
+          if (password != null) 'password': password,
+        }),
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -211,12 +216,13 @@ class ApiService {
     } catch (e) { return false; }
   }
 
-  static Future<List<dynamic>> getLeaderboard() async {
+  static Future<List<dynamic>> getLeaderboard({String? type}) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/leaderboard'), headers: getHeaders());
+      final response = await http.get(Uri.parse('$baseUrl/leaderboard?type=${type ?? "alltime"}'), headers: getHeaders());
       return response.statusCode == 200 ? jsonDecode(response.body) : [];
     } catch (e) { return []; }
   }
+
 
   static Future<Map<String, dynamic>?> getDailyChallenge() async {
     try {
@@ -232,6 +238,14 @@ class ApiService {
     } catch (e) { return null; }
   }
 
+  static Future<List<dynamic>> getDailyChallengeHistory() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/daily-challenge/history'), headers: getHeaders());
+      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+    } catch (e) { return []; }
+  }
+
+
   static Future<List<dynamic>> getPendingOrigami() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/origami/pending'), headers: getHeaders());
@@ -245,6 +259,17 @@ class ApiService {
         Uri.parse('$baseUrl/origami/$id/approval'), 
         headers: getHeaders(), 
         body: jsonEncode({'status': status, 'rejectionReason': rejectionReason})
+      );
+      return response.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  static Future<bool> rateOrigami(dynamic origamiId, int rating) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/origami/$origamiId/rate'),
+        headers: getHeaders(),
+        body: jsonEncode({'rating': rating}),
       );
       return response.statusCode == 200;
     } catch (e) { return false; }
@@ -298,6 +323,23 @@ class ApiService {
     } catch (e) { return false; }
   }
 
+  static Future<bool> adminDeleteOrigami(dynamic id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/admin-manage/origami/$id'),
+        headers: getHeaders(),
+      );
+      return response.statusCode == 200;
+    } catch (e) { return false; }
+  }
+
+  static Future<List<dynamic>> adminGetOrigamiModels() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/admin-manage/origami'), headers: getHeaders());
+      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+    } catch (e) { return []; }
+  }
+
   static Future<List<dynamic>> adminGetUsers() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/admin-manage/users'), headers: getHeaders());
@@ -315,4 +357,55 @@ class ApiService {
       return response.statusCode == 200;
     } catch (e) { return false; }
   }
+
+  // --- SUPPORT CHAT REAL-TIME API ---
+
+  // User: Lấy tin nhắn với Admin
+  static Future<List<dynamic>> getUserMessages() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/support/messages'), headers: getHeaders());
+      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+    } catch (e) { return []; }
+  }
+
+  // User: Gửi tin nhắn đến Admin
+  static Future<bool> sendSupportMessage(String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/support/messages'),
+        headers: getHeaders(),
+        body: jsonEncode({'message': message}),
+      );
+      return response.statusCode == 201;
+    } catch (e) { return false; }
+  }
+
+  // Admin: Lấy danh sách cuộc hội thoại
+  static Future<List<dynamic>> adminGetConversations() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/support/conversations'), headers: getHeaders());
+      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+    } catch (e) { return []; }
+  }
+
+  // Admin: Lấy chi tiết cuộc hội thoại của User X
+  static Future<List<dynamic>> adminGetConversationDetail(dynamic userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/support/conversations/$userId'), headers: getHeaders());
+      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+    } catch (e) { return []; }
+  }
+
+  // Admin: Gửi phản hồi cho User X
+  static Future<bool> adminReplyToUser(dynamic userId, String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/support/conversations/$userId'),
+        headers: getHeaders(),
+        body: jsonEncode({'message': message}),
+      );
+      return response.statusCode == 201;
+    } catch (e) { return false; }
+  }
 }
+

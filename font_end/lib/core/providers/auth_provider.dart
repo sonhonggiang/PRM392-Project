@@ -39,6 +39,8 @@ class AuthProvider extends ChangeNotifier {
             role: parsedRole,
             xp: userJson['xp'] ?? 0,
             streakCount: userJson['streakCount'] ?? userJson['streak_count'] ?? 0,
+            dailyMedals: userJson['daily_medals'] ?? userJson['dailyMedals'] ?? 0,
+            weeklyTrophies: userJson['weekly_trophies'] ?? userJson['weeklyTrophies'] ?? 0,
           );
           notifyListeners();
           return null; // Thành công
@@ -93,6 +95,8 @@ class AuthProvider extends ChangeNotifier {
         role: parsedRole,
         xp: userJson['xp'] ?? 0,
         streakCount: userJson['streak_count'] ?? userJson['streakCount'] ?? 0,
+        dailyMedals: userJson['daily_medals'] ?? userJson['dailyMedals'] ?? 0,
+        weeklyTrophies: userJson['weekly_trophies'] ?? userJson['weeklyTrophies'] ?? 0,
       );
       notifyListeners();
     }

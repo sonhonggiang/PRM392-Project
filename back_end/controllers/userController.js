@@ -1,60 +1,46 @@
 const db = require('../config/db');
+const bcrypt = require('bcryptjs');
 
-// Helper check và mở khóa huy hiệu động dựa trên thành tích của User
+// Helper check và mở khóa huy hiệu động dựa trên số mẫu hoàn thành (mỗi 5 mẫu = 1 huy hiệu mới)
 async function checkAndUnlockBadges(userId) {
   const unlockedBadges = [];
   try {
-    // 1. Kiểm tra huy hiệu 1 (Người mới - hoàn thành 1 bài đầu tiên)
     const [progressRows] = await db.query(
       "SELECT COUNT(*) as completed_count FROM user_progress WHERE user_id = ? AND is_completed = 1",
       [userId]
     );
     const completedCount = progressRows[0].completed_count;
 
+    // Huy hiệu 1: Hoàn thành 1 mẫu đầu tiên (Người mới)
     if (completedCount >= 1) {
-      const [insertRes] = await db.query(
-        "INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 1)",
-        [userId]
-      );
-      if (insertRes.affectedRows > 0) unlockedBadges.push(1);
+      const [r] = await db.query("INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 1)", [userId]);
+      if (r.affectedRows > 0) unlockedBadges.push(1);
     }
-
-    // 2. Kiểm tra huy hiệu 4 (Người học chăm chỉ - hoàn thành 10 bài)
+    // Huy hiệu 2: Hoàn thành 5 mẫu (Tân binh gấp giấy)
+    if (completedCount >= 5) {
+      const [r] = await db.query("INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 2)", [userId]);
+      if (r.affectedRows > 0) unlockedBadges.push(2);
+    }
+    // Huy hiệu 3: Hoàn thành 10 mẫu (Thợ gấp giấy)
     if (completedCount >= 10) {
-      const [insertRes] = await db.query(
-        "INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 4)",
-        [userId]
-      );
-      if (insertRes.affectedRows > 0) unlockedBadges.push(4);
+      const [r] = await db.query("INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 3)", [userId]);
+      if (r.affectedRows > 0) unlockedBadges.push(3);
     }
-
-    // 3. Kiểm tra huy hiệu 2 (Fan Hạc Giấy - gấp hạc giấy 5 lần)
-    // Giả sử có origami_id của mẫu Hạc Giấy, hoặc ta đếm số lần hoàn thành các mẫu có tên 'Hạc Giấy'
-    const [swanRows] = await db.query(
-      `SELECT COUNT(*) as swan_count 
-       FROM user_progress up
-       JOIN origami_models om ON up.origami_id = om.id
-       WHERE up.user_id = ? AND up.is_completed = 1 AND om.name LIKE '%Hạc%'`,
-      [userId]
-    );
-    if (swanRows[0].swan_count >= 5) {
-      const [insertRes] = await db.query(
-        "INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 2)",
-        [userId]
-      );
-      if (insertRes.affectedRows > 0) unlockedBadges.push(2);
+    // Huy hiệu 4: Hoàn thành 15 mẫu (Nghệ nhân Origami)
+    if (completedCount >= 15) {
+      const [r] = await db.query("INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 4)", [userId]);
+      if (r.affectedRows > 0) unlockedBadges.push(4);
     }
-
-    // 4. Kiểm tra huy hiệu 3 (Chuỗi 7 ngày liên tiếp - streak_count >= 7)
-    const [userRows] = await db.query("SELECT streak_count FROM users WHERE id = ?", [userId]);
-    if (userRows.length > 0 && userRows[0].streak_count >= 7) {
-      const [insertRes] = await db.query(
-        "INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 3)",
-        [userId]
-      );
-      if (insertRes.affectedRows > 0) unlockedBadges.push(3);
+    // Huy hiệu 5: Hoàn thành 20 mẫu (Bậc thầy Origami)
+    if (completedCount >= 20) {
+      const [r] = await db.query("INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 5)", [userId]);
+      if (r.affectedRows > 0) unlockedBadges.push(5);
     }
-
+    // Huy hiệu 6: Hoàn thành 30 mẫu (Huyền thoại Origami)
+    if (completedCount >= 30) {
+      const [r] = await db.query("INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, 6)", [userId]);
+      if (r.affectedRows > 0) unlockedBadges.push(6);
+    }
   } catch (err) {
     console.error('Lỗi kiểm tra mở khóa huy hiệu:', err.message);
   }
@@ -108,7 +94,7 @@ async function getProfile(req, res) {
   const userId = req.user.id;
   try {
     const [rows] = await db.query(
-      'SELECT id, email, display_name, role, avatar_url, xp, streak_count FROM users WHERE id = ?',
+      'SELECT id, email, display_name, role, avatar_url, xp, streak_count, daily_medals, weekly_trophies FROM users WHERE id = ?',
       [userId]
     );
     if (rows.length === 0) {
@@ -123,12 +109,32 @@ async function getProfile(req, res) {
 // 0.1 Cập nhật thông tin cá nhân
 async function updateProfile(req, res) {
   const userId = req.user.id;
-  const { displayName, avatarUrl } = req.body;
+  const { displayName, avatarUrl, email, password } = req.body;
   try {
-    await db.query(
-      'UPDATE users SET display_name = ?, avatar_url = ? WHERE id = ?',
-      [displayName, avatarUrl, userId]
-    );
+    let sql = 'UPDATE users SET display_name = ?, avatar_url = ?';
+    const params = [displayName, avatarUrl || ''];
+
+    if (email) {
+      // Kiểm tra trùng lặp email
+      const [existing] = await db.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, userId]);
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Email này đã được sử dụng bởi người dùng khác!' });
+      }
+      sql += ', email = ?';
+      params.push(email);
+    }
+
+    if (password && password.toString().trim() !== '') {
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHash = bcrypt.hashSync(password.toString().trim(), salt);
+      sql += ', password_hash = ?';
+      params.push(passwordHash);
+    }
+
+    sql += ' WHERE id = ?';
+    params.push(userId);
+
+    await db.query(sql, params);
     res.status(200).json({ message: 'Cập nhật hồ sơ thành công!' });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi cập nhật hồ sơ!', error: error.message });
@@ -246,6 +252,17 @@ async function updateProgress(req, res) {
 
     let xpReward = 0;
     let unlockedBadges = [];
+
+    // Luôn ghi nhận thời gian học vào daily_learning_statistics (kể cả chưa hoàn thành)
+    if (duration && duration > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      await db.query(
+        `INSERT INTO daily_learning_statistics (user_id, date, duration_minutes)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE duration_minutes = duration_minutes + VALUES(duration_minutes)`,
+        [userId, today, Math.ceil(duration / 60)] // duration gửi lên là giây, chuyển sang phút
+      );
+    }
 
     // Cộng điểm kinh nghiệm XP nếu hoàn thành mới
     if (isNewlyCompleted) {

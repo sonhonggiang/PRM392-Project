@@ -22,7 +22,9 @@ router.put('/categories/:id', adminController.updateCategory);
 router.delete('/categories/:id', adminController.deleteCategory);
 
 // Quản lý mẫu Origami
+router.get('/origami', adminController.getOrigamiModels);
 router.put('/origami/:id', adminController.updateOrigamiModel);
+router.delete('/origami/:id', adminController.deleteOrigamiModel);
 
 // Quản lý người dùng
 router.get('/users', adminController.getUsers);

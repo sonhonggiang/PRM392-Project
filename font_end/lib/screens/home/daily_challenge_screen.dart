@@ -18,13 +18,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   Map<String, dynamic>? _challengeData;
   bool _isLoading = true;
 
-  // Giả lập lịch hoạt động thử thách tháng
-  final List<bool> _completedDays = [
-    true, true, false, true, true, false, true, 
-    true, false, true, true, true, false, true, 
-    true, true, true, false, true, true, true, 
-    true, true, false, false, false, false, false,
-  ];
+  List<bool> _completedDays = [];
 
   @override
   void initState() {
@@ -34,13 +28,33 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
     _loadChallenge();
   }
 
-  // Tải thử thách ngày hôm nay từ API
+  // Tải thử thách ngày hôm nay và lịch sử hoàn thành trong tháng từ API
   Future<void> _loadChallenge() async {
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getDailyChallenge();
+      final history = await ApiService.getDailyChallengeHistory();
+      
+      final now = DateTime.now();
+      final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+      final totalDays = lastDayOfMonth.day;
+      
+      final List<bool> completed = List.generate(totalDays, (index) => false);
+      for (var item in history) {
+        if (item['date'] != null) {
+          final date = DateTime.parse(item['date']);
+          if (date.month == now.month && date.year == now.year) {
+            final day = date.day;
+            if (day <= totalDays) {
+              completed[day - 1] = item['is_completed'] == 1 || item['is_completed'] == true;
+            }
+          }
+        }
+      }
+
       setState(() {
         _challengeData = data;
+        _completedDays = completed;
         _isLoading = false;
       });
     } catch (e) {
@@ -50,6 +64,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
       }
     }
   }
+
 
   // Tính toán thời gian còn lại đến cuối ngày (23:59:59)
   void _calculateTimeLeft() {
@@ -275,8 +290,9 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
                               final bool isDone = _completedDays[index];
                               final int dayNumber = index + 1;
                               
-                              // Giả định ngày hiện tại là ngày thứ 25
-                              final bool isToday = index == 24;
+                              // Ngày hiện tại thực tế
+                              final bool isToday = index == DateTime.now().day - 1;
+
 
                               return Container(
                                 decoration: BoxDecoration(

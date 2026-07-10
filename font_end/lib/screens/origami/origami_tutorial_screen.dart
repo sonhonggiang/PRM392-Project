@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
@@ -11,12 +12,14 @@ class OrigamiTutorialScreen extends StatefulWidget {
   final int origamiId;
   final List<dynamic> steps;
   final bool isDailyChallenge;
+  final int estimatedTimeMinutes;
 
   const OrigamiTutorialScreen({
     super.key,
     required this.origamiId,
     required this.steps,
     this.isDailyChallenge = false,
+    this.estimatedTimeMinutes = 10,
   });
 
   @override
@@ -27,11 +30,70 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
   int _currentStepIndex = 0;
   late DateTime _startTime;
   bool _isLoading = false;
+  Timer? _timer;
+  late int _remainingSeconds;
 
   @override
   void initState() {
     super.initState();
     _startTime = DateTime.now();
+    _remainingSeconds = widget.estimatedTimeMinutes * 60;
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdown() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        _timer?.cancel();
+        _showTimeUpDialog();
+      }
+    });
+  }
+
+  void _showTimeUpDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: const [
+            Text('⏰ ', style: TextStyle(fontSize: 24)),
+            Text('Hết giờ rồi!', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.red)),
+          ],
+        ),
+        content: const Text(
+          'Thời gian gấp mẫu của bạn đã kết thúc. Hãy thử lại hoặc lựa chọn mẫu khác nhé!',
+          style: TextStyle(color: AppTheme.text, height: 1.4),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.indigo),
+            child: const Text('Quay lại Khám phá'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   // Cập nhật tiến độ học tập lên database khi chuyển qua các bước (chỉ cho thành viên)
@@ -52,6 +114,7 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
 
   // Kết thúc buổi học và nhận phần thưởng
   Future<void> _handleComplete() async {
+    _timer?.cancel();
     final auth = context.read<AuthProvider>();
     final isGuest = auth.currentUser.role == UserRole.guest;
 
@@ -94,38 +157,151 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
         // Cập nhật lại thông tin User trong Provider (XP mới)
         await auth.refreshProfile();
         
-        // Chuyển hướng sang màn hình thành công kèm phần thưởng thực tế
+        // Hiển thị dialog đánh giá sao trước khi chuyển sang màn hình thành công
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TutorialSuccessScreen(
-                modelName: 'Mẫu học gấp',
-                emoji: '🏆',
-                duration: durationStr,
-                xpEarned: xpEarned,
-              ),
-            ),
+          _showRatingDialog(
+            origamiId: widget.origamiId,
+            modelName: 'Mẫu học gấp',
+            emoji: '🏆',
+            duration: durationStr,
+            xpEarned: xpEarned,
           );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        // Fallback chuyển hướng
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TutorialSuccessScreen(
-              modelName: 'Mẫu học gấp',
-              emoji: '🏆',
-              duration: durationStr,
-              xpEarned: xpEarned,
-            ),
-          ),
+        // Fallback: hiển thị dialog đánh giá ngay cả khi lỗi API
+        _showRatingDialog(
+          origamiId: widget.origamiId,
+          modelName: 'Mẫu học gấp',
+          emoji: '🏆',
+          duration: durationStr,
+          xpEarned: xpEarned,
         );
       }
     }
+  }
+
+  // Dialog đánh giá sao sau khi hoàn thành gấp
+  void _showRatingDialog({
+    required int origamiId,
+    required String modelName,
+    required String emoji,
+    required String duration,
+    required int xpEarned,
+  }) {
+    int _selectedStars = 0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉', style: TextStyle(fontSize: 48)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Bạn đã hoàn thành!',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Hãy đánh giá mẫu gấp này để giúp cộng đồng nhé!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppTheme.muted, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                // Hàng 5 ngôi sao
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (i) {
+                    final starIndex = i + 1;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => _selectedStars = starIndex),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Icon(
+                          starIndex <= _selectedStars ? Icons.star_rounded : Icons.star_border_rounded,
+                          color: AppTheme.amber,
+                          size: 40,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _selectedStars == 0 ? 'Chưa chọn sao'
+                    : _selectedStars == 1 ? '⭐ Không tốt'
+                    : _selectedStars == 2 ? '⭐⭐ Bình thường'
+                    : _selectedStars == 3 ? '⭐⭐⭐ Ổn'
+                    : _selectedStars == 4 ? '⭐⭐⭐⭐ Tốt lắm!'
+                    : '⭐⭐⭐⭐⭐ Tuyệt vời!',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _selectedStars > 0 ? AppTheme.amber : AppTheme.muted,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TutorialSuccessScreen(
+                                modelName: modelName,
+                                emoji: emoji,
+                                duration: duration,
+                                xpEarned: xpEarned,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Bỏ qua'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: AppTheme.amber),
+                        onPressed: _selectedStars == 0 ? null : () async {
+                          await ApiService.rateOrigami(origamiId, _selectedStars);
+                          if (!context.mounted) return;
+                          Navigator.pop(ctx);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TutorialSuccessScreen(
+                                modelName: modelName,
+                                emoji: emoji,
+                                duration: duration,
+                                xpEarned: xpEarned,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Gửi đánh giá', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -187,6 +363,35 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
             ),
           ],
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _remainingSeconds < 60 ? AppTheme.red.withOpacity(0.1) : AppTheme.teal.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.timer, 
+                  color: _remainingSeconds < 60 ? AppTheme.red : AppTheme.teal, 
+                  size: 16
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _formatDuration(_remainingSeconds),
+                  style: TextStyle(
+                    color: _remainingSeconds < 60 ? AppTheme.red : AppTheme.teal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: _isLoading

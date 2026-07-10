@@ -105,7 +105,9 @@ async function login(req, res) {
         role: user.role,
         avatarUrl: user.avatar_url,
         xp: user.xp,
-        streakCount: user.streak_count
+        streakCount: user.streak_count,
+        dailyMedals: user.daily_medals,
+        weeklyTrophies: user.weekly_trophies
       }
     });
   } catch (error) {

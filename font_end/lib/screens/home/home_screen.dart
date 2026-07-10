@@ -9,6 +9,8 @@ import 'tabs/home_tab.dart';
 import 'tabs/explore_tab.dart';
 import 'tabs/favorite_tab.dart';
 import 'tabs/profile_tab.dart';
+import 'tabs/achievement_tab.dart';
+
 
 // ─── Model thông báo ────────────────────────────────────────────────────────
 class AppNotification {
@@ -317,6 +319,8 @@ class _HomeScreenState extends State<HomeScreen> {
       HomeTab(onNavigateToExplore: _onNavigateToExplore),
       const ExploreTab(),
       const FavoriteTab(),
+      const CreatorWorkshopTabWrapper(),
+      const AchievementTab(),
       const ProfileTab(),
     ];
 
@@ -368,25 +372,13 @@ class _HomeScreenState extends State<HomeScreen> {
             title: Text(
               _currentIndex == 1 ? 'Khám phá'
                   : _currentIndex == 2 ? 'Yêu thích'
+                  : _currentIndex == 3 ? 'Đăng bài'
+                  : _currentIndex == 4 ? 'Thành tựu'
                   : 'Hồ sơ cá nhân',
               style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.indigo),
             ),
           ),
       body: tabs[_currentIndex],
-      floatingActionButton: (user.role == UserRole.admin || user.xp >= 1000)
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreatorWorkshopScreen()),
-                );
-              },
-              backgroundColor: AppTheme.teal,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Tạo mẫu mới',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
-          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => setState(() => _currentIndex = index),
@@ -396,9 +388,79 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Text('🏠', style: TextStyle(fontSize: 20)), label: 'Home'),
           NavigationDestination(icon: Text('📚', style: TextStyle(fontSize: 20)), label: 'Khám phá'),
           NavigationDestination(icon: Text('⭐', style: TextStyle(fontSize: 20)), label: 'Yêu thích'),
+          NavigationDestination(icon: Text('✍️', style: TextStyle(fontSize: 20)), label: 'Đăng bài'),
+          NavigationDestination(icon: Text('🏆', style: TextStyle(fontSize: 20)), label: 'Thành tựu'),
           NavigationDestination(icon: Text('👤', style: TextStyle(fontSize: 20)), label: 'Hồ sơ'),
         ],
       ),
     );
   }
 }
+
+// ─── Wrapper kiểm tra XP cho tab Đăng bài ────────────────────────────────────
+class CreatorWorkshopTabWrapper extends StatelessWidget {
+  const CreatorWorkshopTabWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.currentUser;
+    final bool hasAccess = user.role == UserRole.admin || user.xp >= 1000;
+
+    if (!hasAccess) {
+      return Scaffold(
+        backgroundColor: AppTheme.bg,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('🔒', style: TextStyle(fontSize: 64)),
+                const SizedBox(height: 16),
+                const Text(
+                  'Tính năng bị khóa!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Bạn cần đạt tối thiểu 1,000 XP (hoặc là Admin) để đăng mẫu Origami mới. Hãy hoàn thành các bài học gấp giấy để thăng cấp!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.muted, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                // Progress Bar
+                Container(
+                  width: 220,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: (user.xp / 1000).clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.teal,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Tiến trình: ${user.xp} / 1,000 XP',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.teal),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const CreatorWorkshopScreen(isTabMode: true);
+  }
+}
+

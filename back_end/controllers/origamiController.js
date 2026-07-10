@@ -98,9 +98,9 @@ async function createOrigami(req, res) {
     // 1. Chèn thông tin chung vào bảng origami_models
     const [modelResult] = await connection.query(
       `INSERT INTO origami_models 
-       (name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status, xp_reward)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, emoji, difficulty || 'Dễ', estimatedTime, paperSize || '15x15 cm', paperType || 'Washi', categoryId, creatorId, finalStatus, xpReward || 50]
+       (name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, emoji, difficulty || 'Dễ', estimatedTime, paperSize || '15x15 cm', paperType || 'Washi', categoryId, creatorId, finalStatus]
     );
 
     const origamiId = modelResult.insertId;
@@ -178,10 +178,49 @@ async function approveOrRejectOrigami(req, res) {
   }
 }
 
+// 5. Đánh giá sao cho mẫu Origami (user rate sau khi hoàn thành)
+async function rateOrigami(req, res) {
+  const { id } = req.params;
+  const { rating } = req.body;
+  const userId = req.user.id;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: 'Đánh giá phải từ 1 đến 5 sao!' });
+  }
+
+  try {
+    // Tính lại rating trung bình (đơn giản: trung bình của tất cả ratings trong user_progress)
+    // Lưu rating vào user_progress của user đó
+    await db.query(
+      `UPDATE user_progress SET rating = ? WHERE user_id = ? AND origami_id = ?`,
+      [rating, userId, id]
+    );
+
+    // Tính lại rating trung bình của model từ tất cả user đã đánh giá
+    const [avgResult] = await db.query(
+      `SELECT AVG(rating) as avg_rating FROM user_progress WHERE origami_id = ? AND rating IS NOT NULL AND rating > 0`,
+      [id]
+    );
+
+    const avgVal = parseFloat(avgResult[0].avg_rating) || 0;
+    const newRating = parseFloat(avgVal.toFixed(1));
+
+    // Cập nhật rating trung bình vào origami_models
+    await db.query('UPDATE origami_models SET rating = ? WHERE id = ?', [newRating, id]);
+
+    res.status(200).json({ message: 'Đánh giá thành công!', newRating });
+  } catch (error) {
+    console.error('Lỗi đánh giá mẫu:', error);
+    res.status(500).json({ message: 'Lỗi đánh giá!', error: error.message });
+  }
+}
+
 module.exports = {
   getAllOrigami,
   getOrigamiById,
   createOrigami,
   getPendingOrigami,
-  approveOrRejectOrigami
+  approveOrRejectOrigami,
+  rateOrigami,
 };
+

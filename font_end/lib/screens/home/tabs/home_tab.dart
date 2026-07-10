@@ -52,9 +52,12 @@ class _HomeTabState extends State<HomeTab> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Tải danh sách mẫu xếp hạng cao nhất
+      // 1. Tải danh sách mẫu xếp hạng cao nhất (chỉ lấy mẫu 4-5 sao)
       final ratingList = await ApiService.getOrigamiList(sortBy: 'rating');
-      _topRatedModels = ratingList.take(4).toList();
+      _topRatedModels = ratingList.where((item) {
+        final rating = double.tryParse((item['rating'] ?? '0.0').toString()) ?? 0.0;
+        return rating >= 4.0;
+      }).take(4).toList();
 
       // 2. Tải danh sách mẫu mới nhất
       final newestList = await ApiService.getOrigamiList(sortBy: 'newest');

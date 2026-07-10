@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../home/home_screen.dart';
 
 class TutorialSuccessScreen extends StatefulWidget {
   final String modelName;
@@ -255,8 +256,10 @@ class _TutorialSuccessScreenState extends State<TutorialSuccessScreen> with Sing
                       Expanded(
                         child: FilledButton(
                           onPressed: () {
-                            // Pop tutorial flow back to HomeScreen
-                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const HomeScreen()),
+                              (route) => false,
+                            );
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: AppTheme.teal,

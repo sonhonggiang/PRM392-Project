@@ -18,19 +18,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
   bool _isLoading = true;
   int _myRank = 0;
   int _myXp = 0;
+  String _currentType = 'daily'; // Mặc định hiển thị xếp hạng hàng ngày
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        final types = ['daily', 'weekly', 'monthly', 'alltime'];
+        setState(() {
+          _currentType = types[_tabController.index];
+        });
+        _loadLeaderboard();
+      }
+    });
     _loadLeaderboard();
   }
 
-  // Tải bảng xếp hạng từ API
+  // Tải bảng xếp hạng từ API theo loại hiện tại
   Future<void> _loadLeaderboard() async {
     setState(() => _isLoading = true);
     try {
-      final list = await ApiService.getLeaderboard();
+      final list = await ApiService.getLeaderboard(type: _currentType);
       final auth = context.read<AuthProvider>();
       final myId = auth.currentUser.id;
 
@@ -86,8 +96,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           unselectedLabelColor: AppTheme.muted,
           indicatorColor: AppTheme.indigo,
           indicatorWeight: 3,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: const [
+            Tab(text: 'Hàng ngày'),
             Tab(text: 'Tuần này'),
             Tab(text: 'Tháng này'),
             Tab(text: 'Mọi thời đại'),
@@ -99,6 +110,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
           : TabBarView(
               controller: _tabController,
               children: [
+                _buildLeaderboardTab(),
                 _buildLeaderboardTab(),
                 _buildLeaderboardTab(),
                 _buildLeaderboardTab(),

@@ -316,6 +316,7 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
                         origamiId: widget.origamiId,
                         steps: steps,
                         isDailyChallenge: widget.isDailyChallenge,
+                        estimatedTimeMinutes: _detailData!['estimated_time'] ?? _detailData!['estimatedTime'] ?? 10,
                       ),
                     ),
                   );

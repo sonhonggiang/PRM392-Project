@@ -13,6 +13,8 @@ class UserModel {
   final String avatarUrl;
   final int xp;
   final int streakCount;
+  final int dailyMedals;
+  final int weeklyTrophies;
 
   UserModel({
     required this.id,
@@ -22,7 +24,10 @@ class UserModel {
     this.avatarUrl = '',
     this.xp = 0,
     this.streakCount = 0,
+    this.dailyMedals = 0,
+    this.weeklyTrophies = 0,
   });
+
 
   // Mock users
   static final UserModel mockAdmin = UserModel(

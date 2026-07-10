@@ -9,5 +9,7 @@ router.get('/pending', authMiddleware, roleMiddleware(['admin']), origamiControl
 router.get('/:id', origamiController.getOrigamiById);
 router.post('/', authMiddleware, roleMiddleware(['admin']), origamiController.createOrigami);
 router.put('/:id/approval', authMiddleware, roleMiddleware(['admin']), origamiController.approveOrRejectOrigami);
+router.post('/:id/rate', authMiddleware, origamiController.rateOrigami);
 
 module.exports = router;
+

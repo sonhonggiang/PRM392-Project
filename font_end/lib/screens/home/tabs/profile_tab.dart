@@ -10,6 +10,9 @@ import '../analytics_badges_screen.dart';
 import '../leaderboard_screen.dart';
 import '../admin_approval_screen.dart';
 import '../admin_management_screen.dart';
+import '../edit_profile_screen.dart';
+import '../faq_screen.dart';
+import '../support_chat_screen.dart';
 
 // ─── Profile Tab chính ───────────────────────────────────────────────────────
 class ProfileTab extends StatefulWidget {
@@ -49,6 +52,9 @@ class _ProfileTabState extends State<ProfileTab> {
     setState(() => _isLoading = true);
 
     try {
+      // 0. Làm mới thông tin cá nhân (XP, streak, huy hiệu...) từ server
+      await auth.refreshProfile();
+
       // 1. Tải tiến trình và tính số lượng hoàn thành
       final progressList = await ApiService.getProgress();
       _historyItems = progressList;
@@ -61,7 +67,7 @@ class _ProfileTabState extends State<ProfileTab> {
       // 3. Tải danh sách huy hiệu và đếm huy hiệu đã mở khóa
       final badgesList = await ApiService.getUserBadges();
       _allBadges = badgesList;
-      _badgesCount = badgesList.where((b) => b['earned'] == true).length;
+      _badgesCount = badgesList.where((b) => b['earned'] == true || b['earned'] == 1).length;
 
       // 4. Cập nhật chuỗi Streak từ model user (hoặc API)
       _streakCount = auth.currentUser.streakCount;
@@ -721,17 +727,10 @@ class _ProfileTabState extends State<ProfileTab> {
                 children: [
                   _settingsTile(Icons.person_outline_rounded, 'Chỉnh sửa hồ sơ', AppTheme.indigo, () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng Chỉnh sửa hồ sơ sẽ sớm ra mắt!')));
-                  }),
-                  _divider(),
-                  _settingsTile(Icons.notifications_outlined, 'Thông báo', AppTheme.teal, () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cài đặt thông báo đang được cập nhật.')));
-                  }),
-                  _divider(),
-                  _settingsTile(Icons.lock_outline_rounded, 'Đổi mật khẩu', AppTheme.amber, () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng sử dụng tính năng Quên mật khẩu tại màn hình đăng nhập.')));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                    ).then((_) => _loadProfileData());
                   }),
                   _divider(),
                   _settingsTile(Icons.language_rounded, 'Ngôn ngữ: Tiếng Việt', AppTheme.muted, () {
@@ -779,15 +778,28 @@ class _ProfileTabState extends State<ProfileTab> {
               decoration: BoxDecoration(color: AppTheme.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.border)),
               child: Column(
                 children: [
-                  _settingsTile(Icons.quiz_outlined, 'Câu hỏi thường gặp (FAQ)', AppTheme.indigo, () {}),
+                  _settingsTile(Icons.quiz_outlined, 'Câu hỏi thường gặp (FAQ)', AppTheme.indigo, () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const FAQScreen()),
+                    );
+                  }),
                   _divider(),
-                  _settingsTile(Icons.chat_bubble_outline_rounded, 'Liên hệ hỗ trợ', AppTheme.teal, () {}),
+                  _settingsTile(Icons.chat_bubble_outline_rounded, 'Liên hệ hỗ trợ', AppTheme.teal, () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SupportChatScreen()),
+                    );
+                  }),
                   _divider(),
-                  _settingsTile(Icons.bug_report_outlined, 'Báo lỗi', AppTheme.red, () {}),
-                  _divider(),
-                  _settingsTile(Icons.star_outline_rounded, 'Đánh giá ứng dụng', AppTheme.amber, () {}),
-                  _divider(),
-                  _settingsTile(Icons.info_outline_rounded, 'Về ứng dụng v1.0.0', AppTheme.muted, () {}),
+                  _settingsTile(Icons.bug_report_outlined, 'Báo lỗi', AppTheme.red, () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Cảm ơn bạn đã báo lỗi. Ý kiến của bạn đã được ghi nhận!'), backgroundColor: AppTheme.indigoMid),
+                    );
+                  }),
                 ],
               ),
             ),

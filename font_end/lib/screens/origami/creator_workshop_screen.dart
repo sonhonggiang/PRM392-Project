@@ -23,11 +23,13 @@ class CreatorStepData {
 }
 
 class CreatorWorkshopScreen extends StatefulWidget {
-  const CreatorWorkshopScreen({super.key});
+  final bool isTabMode;
+  const CreatorWorkshopScreen({super.key, this.isTabMode = false});
 
   @override
   State<CreatorWorkshopScreen> createState() => _CreatorWorkshopScreenState();
 }
+
 
 class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -219,7 +221,19 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
               backgroundColor: AppTheme.teal,
             ),
           );
-          Navigator.pop(context, true);
+          if (widget.isTabMode) {
+            _nameController.clear();
+            _timeController.clear();
+            _paperSizeController.clear();
+            _paperTypeController.clear();
+            setState(() {
+              _steps.clear();
+              _steps.add(CreatorStepData(stepNumber: 1));
+              _steps.add(CreatorStepData(stepNumber: 2));
+            });
+          } else {
+            Navigator.pop(context, true);
+          }
         }
       } else {
         if (mounted) {
@@ -241,10 +255,13 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppTheme.indigo),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: widget.isTabMode
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios_rounded, color: AppTheme.indigo),
+                onPressed: () => Navigator.pop(context),
+              ),
+        automaticallyImplyLeading: !widget.isTabMode,
         title: const Text(
           'Đóng góp & Sáng tạo mẫu',
           style: TextStyle(color: AppTheme.indigo, fontWeight: FontWeight.bold, fontSize: 18),
@@ -332,26 +349,28 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
                           child: _isLoadingCategories
                               ? const Center(child: CircularProgressIndicator())
                               : DropdownButtonFormField<int>(
+                                  isExpanded: true,
                                   value: _selectedCategoryId,
                                   onChanged: (v) => setState(() => _selectedCategoryId = v!),
                                   decoration: const InputDecoration(labelText: 'Danh mục'),
                                   items: _categories.map((cat) => DropdownMenuItem<int>(
                                     value: cat['id'],
-                                    child: Text('${cat['name']} ${cat['emoji'] ?? ''}'),
+                                    child: Text('${cat['name']} ${cat['emoji'] ?? ''}', overflow: TextOverflow.ellipsis),
                                   )).toList(),
                                 ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
+                            isExpanded: true,
                             value: _difficulty,
                             onChanged: (v) => setState(() => _difficulty = v!),
                             decoration: const InputDecoration(labelText: 'Độ khó'),
                             items: const [
-                              DropdownMenuItem(value: 'Dễ', child: Text('Dễ ⭐')),
-                              DropdownMenuItem(value: 'Trung bình', child: Text('Trung bình ⭐⭐')),
-                              DropdownMenuItem(value: 'Khó', child: Text('Khó ⭐⭐⭐')),
-                              DropdownMenuItem(value: 'Cực khó', child: Text('Cực khó 🔥')),
+                              DropdownMenuItem(value: 'Dễ', child: Text('Dễ ⭐', overflow: TextOverflow.ellipsis)),
+                              DropdownMenuItem(value: 'Trung bình', child: Text('Trung bình ⭐⭐', overflow: TextOverflow.ellipsis)),
+                              DropdownMenuItem(value: 'Khó', child: Text('Khó ⭐⭐⭐', overflow: TextOverflow.ellipsis)),
+                              DropdownMenuItem(value: 'Cực khó', child: Text('Cực khó 🔥', overflow: TextOverflow.ellipsis)),
                             ],
                           ),
                         ),

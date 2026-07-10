@@ -34,6 +34,8 @@ async function initializeDatabase() {
         xp INT DEFAULT 0,
         streak_count INT DEFAULT 0,
         last_active_date DATE DEFAULT NULL,
+        daily_medals INT DEFAULT 0,
+        weekly_trophies INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       );
@@ -128,6 +130,7 @@ async function initializeDatabase() {
         is_completed TINYINT(1) DEFAULT 0,
         completion_duration INT DEFAULT 0 COMMENT 'Thời gian hoàn thành tính bằng giây',
         completed_at TIMESTAMP NULL DEFAULT NULL,
+        rating DECIMAL(2,1) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (origami_id) REFERENCES origami_models(id) ON DELETE CASCADE,
@@ -148,13 +151,15 @@ async function initializeDatabase() {
       );
     `);
 
-    // Chèn huy hiệu mặc định
+    // Chèn huy hiệu mặc định (xóa cũ và thêm mới)
     await connection.query(`
       INSERT IGNORE INTO badges (id, name, emoji, description, condition_type, condition_value) VALUES 
-      (1, 'Người mới', '🌱', 'Hoàn thành mẫu đầu tiên', 'first_fold', 1),
-      (2, 'Fan Hạc giấy', '🦢', 'Gấp hạc giấy 5 lần', 'fold_swan', 5),
-      (3, 'Chuỗi 7 ngày', '🔥', 'Học liên tục 7 ngày', 'streak_day', 7),
-      (4, 'Người học chăm chỉ', '⭐', 'Hoàn thành 10 mẫu', 'total_fold', 10);
+      (1, 'Người mới', '🌱', 'Hoàn thành mẫu gấp đầu tiên của bạn!', 'total_fold', 1),
+      (2, 'Tân binh gấp giấy', '🐣', 'Hoàn thành 5 mẫu gấp', 'total_fold', 5),
+      (3, 'Thợ gấp giấy', '⭐', 'Hoàn thành 10 mẫu gấp - bạn đang tiến bộ!', 'total_fold', 10),
+      (4, 'Nghệ nhân Origami', '🎭', 'Hoàn thành 15 mẫu gấp - bạn thực sự đam mê!', 'total_fold', 15),
+      (5, 'Bậc thầy Origami', '🏆', 'Hoàn thành 20 mẫu gấp - kỹ năng tuyệt vời!', 'total_fold', 20),
+      (6, 'Huyền thoại Origami', '👑', 'Hoàn thành 30 mẫu gấp - bạn là huyền thoại!', 'total_fold', 30);
     `);
 
     // 10. Tạo bảng user_badges
@@ -201,6 +206,20 @@ async function initializeDatabase() {
         duration_minutes INT DEFAULT 0 COMMENT 'Thời lượng học (phút)',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uq_user_date (user_id, date)
+      );
+    `);
+
+    // 14. Tạo bảng support_messages (cho chat hỗ trợ thực tế giữa Admin và User)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS support_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        sender_id INT NOT NULL,
+        message TEXT NOT NULL,
+        is_read TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
 
@@ -254,6 +273,34 @@ async function initializeDatabase() {
          VALUES (3, 'Rồng Lửa', '🐲', 'Khó', 60, '20x20 cm', 'Kami', 1, ?, 'approved', 5.0)`,
         [adminId]
       );
+
+      // Chèn 10 mẫu Origami mới chưa có đánh giá (rating = 0.0)
+      const newModels = [
+        { id: 11, name: 'Thỏ Con', emoji: '🐰', difficulty: 'Dễ', time: 5, category_id: 1, paper_size: '15x15 cm', paper_type: 'Kami' },
+        { id: 12, name: 'Bướm Xinh', emoji: '🦋', difficulty: 'Dễ', time: 6, category_id: 1, paper_size: '15x15 cm', paper_type: 'Washi' },
+        { id: 13, name: 'Con Cá Vàng', emoji: '🐟', difficulty: 'Dễ', time: 7, category_id: 1, paper_size: '15x15 cm', paper_type: 'Kami' },
+        { id: 14, name: 'Hoa Hồng', emoji: '🌹', difficulty: 'Khó', time: 20, category_id: 2, paper_size: '20x20 cm', paper_type: 'Tant' },
+        { id: 15, name: 'Cây Thông', emoji: '🌲', difficulty: 'Dễ', time: 10, category_id: 2, paper_size: '15x15 cm', paper_type: 'Kami' },
+        { id: 16, name: 'Thuyền Giấy', emoji: '⛵', difficulty: 'Dễ', time: 4, category_id: 3, paper_size: '15x15 cm', paper_type: 'Kami' },
+        { id: 17, name: 'Máy Bay Giấy', emoji: '✈️', difficulty: 'Dễ', time: 3, category_id: 3, paper_size: '15x15 cm', paper_type: 'Kami' },
+        { id: 18, name: 'Xe Tải Giấy', emoji: '🚚', difficulty: 'Trung bình', time: 12, category_id: 3, paper_size: '18x18 cm', paper_type: 'Kraft' },
+        { id: 19, name: 'Chiếc Cốc Giấy', emoji: '🥛', difficulty: 'Dễ', time: 5, category_id: 3, paper_size: '12x12 cm', paper_type: 'Kami' },
+        { id: 20, name: 'Ngôi Sao May Mắn', emoji: '⭐', difficulty: 'Dễ', time: 8, category_id: 3, paper_size: '1x20 cm Strip', paper_type: 'Star Paper' },
+      ];
+
+      for (const m of newModels) {
+        await connection.query(
+          `INSERT INTO origami_models (id, name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status, rating) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', 0.0)`,
+          [m.id, m.name, m.emoji, m.difficulty, m.time, m.paper_size, m.paper_type, m.category_id, adminId]
+        );
+        await connection.query(
+          `INSERT INTO origami_steps (origami_id, step_number, instruction, tip) VALUES 
+           (?, 1, 'Chuẩn bị giấy và gấp đôi để tạo nếp trung tâm.', 'Hãy vuốt thật thẳng.'),
+           (?, 2, 'Tiếp tục gấp các góc theo hướng dẫn tạo hình cơ bản.', 'Chú ý căn chỉnh các góc đối xứng.')`,
+          [m.id, m.id]
+        );
+      }
 
       // Chèn các bước gấp cho Trái Tim
       await connection.query(`

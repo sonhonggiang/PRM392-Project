@@ -11,5 +11,7 @@ router.get('/analytics', authMiddleware, statsController.getUserAnalytics);
 router.get('/badges', authMiddleware, statsController.getUserBadges);
 router.get('/daily-challenge', authMiddleware, statsController.getDailyChallenge);
 router.post('/daily-challenge/complete', authMiddleware, statsController.completeDailyChallenge);
+router.get('/daily-challenge/history', authMiddleware, statsController.getDailyChallengeHistory);
 
 module.exports = router;
+
