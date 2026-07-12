@@ -294,6 +294,7 @@ async function initializeDatabase() {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', 0.0)`,
           [m.id, m.name, m.emoji, m.difficulty, m.time, m.paper_size, m.paper_type, m.category_id, adminId]
         );
+      }
       // Định nghĩa dữ liệu hướng dẫn gấp thực tế chi tiết
       const heartSteps = [
         { step: 1, text: 'Chuẩn bị một tờ giấy hình vuông màu đỏ (15x15 cm). Đặt mặt màu úp xuống. Gấp đôi tờ giấy theo đường chéo tạo thành hình tam giác lớn, miết phẳng nếp gấp rồi mở ra.', tip: 'Hãy miết nếp gấp thật thẳng và chính xác ở đường chéo chính.', img: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-1.png' },
