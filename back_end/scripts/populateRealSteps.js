@@ -6,329 +6,732 @@ async function populateRealSteps() {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'origami_app_db',
+    database: process.env.DB_NAME || 'Web_Son_Dep_Trai',
   });
 
   try {
-    console.log('🔄 Đang bắt đầu chèn dữ liệu hướng dẫn gấp chi tiết cho các mẫu...');
+    console.log('🔄 Bắt đầu cập nhật hướng dẫn gấp chi tiết với hình ảnh đúng cho từng mẫu...');
 
-    // 1. Định nghĩa các bước gấp cho Trái Tim (ID: 1)
+    // ======================================================
+    // ID: 1 - TRÁI TIM (Heart)
+    // Nguồn: origami.me/heart
+    // ======================================================
     const heartSteps = [
       {
         step: 1,
         instruction: 'Chuẩn bị một tờ giấy hình vuông màu đỏ (15x15 cm). Đặt mặt màu úp xuống. Gấp đôi tờ giấy theo đường chéo tạo thành hình tam giác lớn, miết phẳng nếp gấp rồi mở ra.',
-        tip: 'Hãy miết nếp gấp thật thẳng và chính xác ở đường chéo chính.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-1.png'
+        tip: 'Miết nếp gấp thật thẳng và chính xác ở đường chéo chính.',
+        image: 'https://www.origami-instructions.com/images/origami-heart-1.jpg'
       },
       {
         step: 2,
         instruction: 'Xoay tờ giấy và tiếp tục gấp đôi theo đường chéo còn lại để tạo thành 2 đường nếp gấp chéo cắt nhau ở tâm. Mở tờ giấy phẳng ra.',
         tip: 'Đảm bảo giao điểm của 2 nếp gấp nằm đúng trung tâm tờ giấy.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-2.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-2.jpg'
       },
       {
         step: 3,
         instruction: 'Gấp đỉnh góc trên cùng của tờ giấy xuống sao cho chạm đúng vào tâm chính giữa (giao điểm của 2 nếp gấp chéo).',
         tip: 'Đỉnh góc nhọn phải nằm chuẩn xác trên điểm tâm.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-3.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-3.jpg'
       },
       {
         step: 4,
         instruction: 'Gấp góc dưới cùng của tờ giấy hướng lên trên sao cho đỉnh góc chạm vào cạnh ngang ở phần đầu trên của tờ giấy.',
         tip: 'Góc nhọn dưới cùng phải đi thẳng qua trục dọc trung tâm.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-4.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-4.jpg'
       },
       {
         step: 5,
         instruction: 'Gấp cạnh bên dưới bên trái hướng lên trên theo đường nếp gấp dọc trung tâm.',
         tip: 'Cạnh gấp xiên sẽ khớp khít với trục nếp gấp dọc ở giữa.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-5.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-5.jpg'
       },
       {
         step: 6,
         instruction: 'Gấp cạnh bên dưới bên phải tương tự hướng lên trên theo đường nếp gấp dọc trung tâm. Lúc này hình dáng trái tim cơ bản đã lộ ra.',
         tip: 'Hãy căn chỉnh hai bên thật đối xứng để trái tim cân đối.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-6.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-6.jpg'
       },
       {
         step: 7,
         instruction: 'Lật mặt sau của trái tim lại để chuẩn bị bo các góc nhọn của trái tim cho tròn trịa.',
         tip: 'Giữ chặt các nếp gấp trước đó để không bị xô lệch khi lật.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-7.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-7.jpg'
       },
       {
         step: 8,
         instruction: 'Gấp hai góc nhọn ở đỉnh phía trên xuống dưới khoảng 1-2 cm để tạo hình bo tròn cho phần đầu của trái tim.',
         tip: 'Gấp hai đỉnh bằng nhau để hai nửa trái tim cao bằng nhau.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-8.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-8.jpg'
       },
       {
         step: 9,
         instruction: 'Gấp hai góc nhọn ở hai bên rìa trái và phải hướng vào trong một chút để làm thon gọn dáng trái tim.',
         tip: 'Chỉ cần gấp một góc nhỏ để bo tròn cạnh hông của trái tim.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-9.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-9.jpg'
       },
       {
         step: 10,
         instruction: 'Lật ngược lại mặt trước. Xin chúc mừng! Bạn đã hoàn thành một Trái Tim Origami vô cùng dễ thương và ý nghĩa.',
         tip: 'Dùng tay vuốt nhẹ mặt trước cho phẳng phiu và cân đối.',
-        image: 'https://origami.me/wp-content/uploads/2024/02/origami-heart-diagram-step-10.png'
+        image: 'https://www.origami-instructions.com/images/origami-heart-10.jpg'
       }
     ];
 
-    // 2. Định nghĩa các bước gấp cho Hạc Giấy (ID: 2)
-    const swanSteps = [
+    // ======================================================
+    // ID: 2 - HẠC GIẤY / Crane (Origami Crane)
+    // Nguồn: origami.me/crane - hình ảnh sơ đồ gấp hạc thực tế
+    // ======================================================
+    const craneSteps = [
       {
         step: 1,
-        instruction: 'Đặt mặt màu tờ giấy hình vuông lên trên. Gấp đôi tờ giấy theo đường chéo tạo thành hình tam giác lớn rồi mở ra để lấy nếp gấp chéo chính giữa.',
-        tip: 'Đường chéo này sẽ làm chuẩn cho các bước tiếp theo.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-1.png'
+        instruction: 'Đặt mặt màu tờ giấy hình vuông lên trên. Gấp đôi tờ giấy theo cả chiều ngang và chiều dọc tạo nếp gấp chữ thập. Mở tờ giấy phẳng ra.',
+        tip: 'Cả hai đường gấp ngang và dọc phải chuẩn xác qua tâm tờ giấy.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-1.jpg'
       },
       {
         step: 2,
-        instruction: 'Gấp hai cạnh dưới bên trái và bên phải hướng vào trong sao cho trùng khít với nếp gấp chéo chính giữa vừa tạo ở Bước 1. Tạo hình giống chiếc diều.',
-        tip: 'Hãy miết phẳng và sát nếp gấp để các góc nhọn ở đuôi thật sắc nét.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-2.png'
+        instruction: 'Lật mặt sau tờ giấy. Gấp đôi tờ giấy theo hai đường chéo tạo nếp gấp chữ X. Mở tờ giấy ra.',
+        tip: 'Khi hoàn thành có 4 đường nếp gấp cắt nhau tại tâm.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-2.jpg'
       },
       {
         step: 3,
-        instruction: 'Lật mặt sau của tờ giấy lại.',
-        tip: 'Nhớ giữ nguyên nếp gấp của mặt trước khi lật.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-3.png'
+        instruction: 'Thu gọn tờ giấy theo các nếp gấp chéo và nếp gấp ngang để tạo thành hình vuông nhỏ gọn (Square Base/Sơ đồ vuông cơ bản).',
+        tip: 'Ấn nhẹ vào tâm giấy và để 4 phần tự gấp vào nhau thành hình vuông.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-3.jpg'
       },
       {
         step: 4,
-        instruction: 'Tiếp tục gấp hai cạnh bên ngoài hướng vào đường nếp gấp dọc ở chính giữa một lần nữa để làm thon gọn thân chú chim hạc.',
-        tip: 'Hãy căn chỉnh thật khít và miết mạnh tay.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-4.png'
+        instruction: 'Với hình vuông cơ bản đặt đỉnh nhọn lên trên, gấp hai cạnh bên trái và phải hướng vào nếp gấp dọc chính giữa. Lặp lại ở mặt sau.',
+        tip: 'Tạo hình thoi gọn gàng ở cả hai mặt.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-4.jpg'
       },
       {
         step: 5,
-        instruction: 'Gấp đỉnh góc nhọn phía dưới lên trên sao cho trùng khít với đỉnh góc nhọn phía trên cùng.',
-        tip: 'Đường gấp ngang này sẽ chia đôi chiều dài của thân hạc.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-5.png'
+        instruction: 'Gấp đỉnh nhọn trên cùng xuống và mở nếp gấp vừa tạo. Miết phẳng và ấn mạnh tạo nếp đường nằm ngang.',
+        tip: 'Đây là bước tạo nếp chuẩn bị để petal fold.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-5.jpg'
       },
       {
         step: 6,
-        instruction: 'Gấp ngược một phần nhỏ của đầu nhọn đó xuống dưới khoảng 2 cm để tạo hình chiếc mỏ cho chú hạc.',
-        tip: 'Đây chính là phần đầu và mỏ của chim hạc.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-6.png'
+        instruction: 'Thực hiện Petal Fold: Nâng lớp trên cùng từ dưới đáy lên trên trong khi hai cạnh bên gập vào trong. Lặp lại ở mặt sau. Kết quả là hình thoi dài (Bird Base).',
+        tip: 'Đây là kỹ thuật quan trọng nhất khi gấp hạc. Hãy làm chậm và cẩn thận.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-6.jpg'
       },
       {
         step: 7,
-        instruction: 'Gấp đôi toàn bộ cấu trúc theo chiều dọc từ trái sang phải dọc theo nếp gấp trục giữa.',
-        tip: 'Giữ chặt phần đầu và cổ hạc bên trong khi gấp đôi lại.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-7.png'
+        instruction: 'Gấp hai đỉnh nhọn phía dưới của Bird Base lên trên dọc theo nếp gấp dọc trung tâm (đây sẽ là cổ và đuôi hạc).',
+        tip: 'Cổ và đuôi hạc cần dài bằng nhau.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-7.jpg'
       },
       {
         step: 8,
-        instruction: 'Kéo nhẹ nhàng phần cổ và đầu của hạc (phần có mỏ nhọn) hướng xiên lên trên một chút để tạo tư thế đứng kiêu hãnh.',
-        tip: 'Kéo từ từ để tránh làm rách giấy ở phần nách gấp.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-8.png'
+        instruction: 'Gấp ngược một phần nhỏ của một đỉnh nhọn (phần cổ hạc) để tạo thành chiếc đầu nhỏ và mỏ hạc.',
+        tip: 'Phần đầu hạc chỉ cần gấp nhỏ khoảng 1-1.5 cm.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-8.jpg'
       },
       {
         step: 9,
-        instruction: 'Miết phẳng nếp gấp ở phần chân cổ để cố định tư thế cho chú hạc. Kéo nhẹ phần mỏ chim nằm ngang ra.',
-        tip: 'Tạo nếp gấp sắc nét ở cổ hạc để chú hạc có thể đứng vững.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-9.png'
+        instruction: 'Kéo nhẹ hai cánh hạc sang hai bên rộng ra. Đồng thời giữ nhẹ phần thân hạc để cánh mở rộng tự nhiên.',
+        tip: 'Kéo từ từ và đều tay để thân hạc phồng lên cân đối.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-9.jpg'
       },
       {
         step: 10,
-        instruction: 'Chỉnh sửa hai bên cánh rộng ra một chút. Bạn đã hoàn thành chú Hạc Origami tuyệt đẹp và thanh thoát!',
-        tip: 'Đặt chú hạc lên bàn phẳng để kiểm tra độ cân bằng.',
-        image: 'https://origami.me/wp-content/uploads/2026/06/origami-swan-diagram-step-10.png'
+        instruction: 'Chỉnh trang lại cánh, cổ và đuôi hạc. Hạc Giấy Origami truyền thống đẹp nhất thế giới đã hoàn thành!',
+        tip: 'Truyền thuyết Nhật Bản: gấp 1000 con hạc sẽ được thực hiện một điều ước.',
+        image: 'https://www.origami-instructions.com/images/origami-crane-10.jpg'
       }
     ];
 
-    // 3. Định nghĩa các bước gấp cho các mẫu khác (sử dụng hình ảnh mẫu minh họa chất lượng từ Unsplash)
-    // Các mẫu khám phá (ID 11-20) và Rồng lửa (ID 3)
-    const otherModels = [
+    // ======================================================
+    // ID: 3 - RỒNG LỬA (Dragon)
+    // ======================================================
+    const dragonSteps = [
       {
-        id: 3, // Rồng Lửa
-        name: 'Rồng Lửa',
-        steps: [
-          { step: 1, instruction: 'Bắt đầu bằng cách gấp đôi tờ giấy vuông màu cam theo chiều dọc và ngang để lấy nếp gấp dấu cộng.', tip: 'Miết nếp gấp phẳng phiu.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Lật mặt sau, gấp hai đường chéo tạo nếp và thu gọn giấy về dạng xếp hình vuông cơ bản (Bird Base).', tip: 'Cẩn thận giữ các góc giấy cân đối.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp các góc của hình vuông vào trong nếp giữa để tạo hình kim cương, thực hiện trên cả hai mặt.', tip: 'Đây là cấu trúc cơ bản của cánh hạc/rồng.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gập đầu nhọn trên cùng xuống dưới để tạo nếp gấp nằm ngang vững chắc.', tip: 'Miết mạnh tay.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Mở rộng hai góc bên hông ra và ấn xẹp nếp gấp xuống tạo thành đôi cánh lớn cho rồng.', tip: 'Bước này đòi hỏi sự khéo léo để không làm rách nách cánh.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Gập đôi cấu trúc thân rồng dọc theo sống lưng.', tip: 'Đôi cánh hướng ra ngoài.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' },
-          { step: 7, instruction: 'Gấp ngược đầu của rồng tạo tư thế cổ ngẩng cao, tạo nếp gấp xếp ly để làm bờm và sừng rồng.', tip: 'Tạo nếp sừng tinh tế.', image: 'https://images.unsplash.com/photo-1502691876148-a84978e59fa8?q=80&w=400' },
-          { step: 8, instruction: 'Gấp chân rồng ở cả hai bên hông bằng cách gập chéo các góc nhọn phía dưới xuống.', tip: 'Căn chỉnh hai chân trước và hai chân sau đối xứng.', image: 'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=400' },
-          { step: 9, instruction: 'Uốn cong và gập ngoằn ngoèo phần đuôi rồng để tạo hiệu ứng đuôi rồng lửa sinh động.', tip: 'Tạo nếp uốn mềm mại tự nhiên.', image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400' },
-          { step: 10, instruction: 'Mở cánh rồng rộng ra và chỉnh lại dáng đứng vững trên chân. Rồng Lửa Origami huyền thoại đã hoàn thành!', tip: 'Vuốt phẳng đôi cánh để trông oai vệ hơn.', image: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=400' }
-        ]
+        step: 1,
+        instruction: 'Bắt đầu với tờ giấy hình vuông 20x20 cm màu cam/đỏ. Gấp đôi theo cả chiều ngang, chiều dọc và hai đường chéo để tạo nếp gấp cơ sở. Mở giấy ra.',
+        tip: 'Cần giấy to và chắc để rồng giữ được dáng. Nên dùng giấy 90 gsm.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step1.jpg'
       },
       {
-        id: 11, // Thỏ Con
-        name: 'Thỏ Con',
-        steps: [
-          { step: 1, instruction: 'Bắt đầu với tờ giấy hình vuông màu hồng nhạt. Gấp đôi theo đường chéo tạo hình tam giác.', tip: 'Hãy để mặt màu hướng ra ngoài.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp một dải mỏng ở cạnh đáy tam giác lên trên khoảng 1.5 cm để tạo nếp tai.', tip: 'Dải này sẽ định hình chiều dài tai thỏ.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gập góc nhọn hai bên hướng lên trên theo trục dọc chính giữa để tạo thành đôi tai thỏ dựng đứng.', tip: 'Đảm bảo hai tai thẳng hàng và bằng nhau.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gập ngược góc nhọn dưới cùng ở cằm thỏ ra phía sau để bo tròn khuôn mặt.', tip: 'Miết phẳng nếp gấp cằm thỏ.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Gấp đầu góc nhọn phía trên trán thỏ vào trong để làm phẳng đỉnh đầu.', tip: 'Đôi tai sẽ trông rõ ràng hơn.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Lật mặt trước lại và vẽ thêm mắt, mũi xinh xắn cho chú Thỏ Con Origami của bạn!', tip: 'Có thể dùng bút màu vẽ trang trí thêm.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' }
-        ]
+        step: 2,
+        instruction: 'Thu gọn giấy về dạng hình vuông nhỏ (Square Base): ấn tâm giấy xuống trong khi 4 phần thu vào tạo hình vuông 4 lớp.',
+        tip: 'Phần mở của hình vuông cơ bản hướng xuống phía dưới.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step2.jpg'
       },
       {
-        id: 12, // Bướm Xinh
-        name: 'Bướm Xinh',
-        steps: [
-          { step: 1, instruction: 'Gấp đôi tờ giấy vuông theo cả chiều dọc, chiều ngang và hai đường chéo rồi mở ra để tạo nếp gấp cơ bản.', tip: 'Các nếp gấp chéo rất quan trọng cho thân bướm.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Thu gọn giấy theo các nếp gấp chéo để tạo thành hình tam giác kép (Waterbomb Base).', tip: 'Ấn nhẹ ở tâm giấy để thu gọn dễ dàng.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp hai góc nhọn ở lớp trên của tam giác hướng lên chạm vào đỉnh nhọn phía trên.', tip: 'Thực hiện đối xứng cả bên trái và bên phải.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Lật mặt sau của tam giác lại.', tip: 'Hướng đỉnh tam giác xuống phía dưới.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Kéo đỉnh nhọn phía dưới gấp ngược lên trên, để đỉnh nhọn này vượt quá cạnh ngang trên cùng khoảng 1 cm.', tip: 'Hai cạnh bên sẽ tự động căng và cong lên.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Gập đỉnh nhọn thừa đó đè qua mép ngang để khóa chặt cấu trúc.', tip: 'Miết thật chặt nếp gấp khóa này.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' },
-          { step: 7, instruction: 'Gập đôi toàn bộ chú bướm dọc theo nếp gấp thân giữa để định hình đôi cánh sinh động.', tip: 'Giữ chặt nếp gấp khóa cằm ở bước trước.', image: 'https://images.unsplash.com/photo-1502691876148-a84978e59fa8?q=80&w=400' },
-          { step: 8, instruction: 'Mở nhẹ đôi cánh ra. Chúc mừng bạn đã hoàn thành một cánh Bướm Xinh Origami sống động!', tip: 'Uốn cong nhẹ đôi cánh để bướm trông tự nhiên hơn.', image: 'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=400' }
-        ]
+        step: 3,
+        instruction: 'Gấp hai cạnh bên vào giữa trục dọc tạo nếp thoi (Kite fold) ở cả hai mặt hình vuông cơ bản.',
+        tip: 'Tiếp theo gấp đỉnh trên xuống và mở nếp ra để chuẩn bị Petal Fold.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step3.jpg'
       },
       {
-        id: 13, // Con Cá Vàng
-        name: 'Con Cá Vàng',
-        steps: [
-          { step: 1, instruction: 'Sử dụng giấy vuông màu cam/đỏ. Gấp đôi chéo tờ giấy rồi mở ra lấy nếp gấp trục.', tip: 'Nên dùng giấy 2 mặt màu để đuôi cá nổi bật.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp hai cạnh bên ngoài hướng vào nếp gấp dọc trung tâm để tạo hình chiếc diều.', tip: 'Gấp thật phẳng hai mép giấy.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp phần góc nhọn phía trên xuống sát mép gấp chéo ngang bên dưới.', tip: 'Đây sẽ là đầu cá vàng.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gấp ngược hai góc nhọn bên hông chéo xuống dưới tạo hình vây cá vàng.', tip: 'Tạo góc chéo khoảng 45 độ.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Gập đôi chú cá theo chiều dọc dọc theo nếp gấp chính giữa thân cá.', tip: 'Phần vây cá hướng chéo ra hai bên hông.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Gấp chéo phần đuôi cá nhọn phía sau hướng lên trên.', tip: 'Tạo nếp chéo xéo để đuôi vểnh lên.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' },
-          { step: 7, instruction: 'Dùng kéo cắt nhẹ một đường nhỏ ở giữa vây đuôi để tách đuôi thành 2 phần mềm mại.', tip: 'Chỉ cắt một đường thẳng khoảng 3-4 cm.', image: 'https://images.unsplash.com/photo-1502691876148-a84978e59fa8?q=80&w=400' },
-          { step: 8, instruction: 'Tách nhẹ vây đuôi và vẽ thêm mắt tròn xoe. Con Cá Vàng Origami xinh xắn đã bơi lội thành công!', tip: 'Đặt chú cá nằm nghiêng để chụp hình cực xinh.', image: 'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=400' }
-        ]
+        step: 4,
+        instruction: 'Thực hiện Petal Fold để tạo Bird Base (cấu trúc gốc cơ bản của hạc). Lặp lại ở cả hai mặt.',
+        tip: 'Bird Base là nền tảng gấp con rồng. Hãy miết phẳng nếp gấp kỹ lưỡng.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step4.jpg'
       },
       {
-        id: 14, // Hoa Hồng
-        name: 'Hoa Hồng',
-        steps: [
-          { step: 1, instruction: 'Gấp đôi tờ giấy đỏ theo chiều dọc và ngang để tạo nếp gấp chữ thập chính giữa.', tip: 'Đường nếp gấp phải cực kỳ rõ nét.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gập 4 góc nhọn của tờ giấy vuông chạm vào đúng điểm tâm ở trung tâm tờ giấy.', tip: 'Đây gọi là nếp gấp Blintz.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Tiếp tục gấp 4 góc nhọn mới vào tâm trung tâm một lần nữa để thu nhỏ kích thước hình vuông.', tip: 'Hãy đè chặt nếp giấy tránh bung ra.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Lần thứ ba, gấp cả 4 góc nhọn vào tâm trung tâm để tạo nhiều lớp cánh hoa hồng.', tip: 'Bước này giấy bắt đầu dày, hãy miết bằng cạnh thước.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Lật ngược mặt sau của tờ hình vuông dày lại.', tip: 'Giữ chặt phần giấy gấp xếp lớp bên dưới.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Gấp tiếp 4 góc nhọn ở mặt sau hướng vào tâm chính giữa.', tip: 'Miết phẳng nếp gấp để định hình đế hoa.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' },
-          { step: 7, instruction: 'Gấp nhẹ 4 đỉnh nhọn ở giữa chéo ngược ra phía ngoài mép giấy.', tip: 'Đây là phần nhụy hoa trong cùng.', image: 'https://images.unsplash.com/photo-1502691876148-a84978e59fa8?q=80&w=400' },
-          { step: 8, instruction: 'Lật nhẹ từng lớp cánh hoa từ phía dưới kéo lộn ngược ra mặt ngoài.', tip: 'Kéo nhẹ nhàng và dùng ngón tay uốn cong cánh hoa hồng.', image: 'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=400' },
-          { step: 9, instruction: 'Tiếp tục lộn lớp cánh hoa tiếp theo từ phía dưới ra ngoài để tạo độ nở rộ.', tip: 'Uốn cong 4 góc cánh hoa chéo ra ngoài.', image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400' },
-          { step: 10, instruction: 'Chỉnh trang lại các lớp cánh hoa cho đều và căng phồng. Bạn đã có đóa Hoa Hồng Origami nở rộ rực rỡ!', tip: 'Có thể làm thêm cành và lá bằng giấy xanh.', image: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=400' }
-        ]
+        step: 5,
+        instruction: 'Gấp hai cánh bên hông Bird Base xuống 45 độ để tạo hình dạng cánh rồng sơ bộ.',
+        tip: 'Cánh rồng ở phần này có góc gấp thoải hơn so với cánh hạc.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step5.jpg'
       },
       {
-        id: 15, // Cây Thông
-        name: 'Cây Thông',
-        steps: [
-          { step: 1, instruction: 'Sử dụng giấy vuông xanh lá. Gấp đôi chéo tờ giấy rồi mở ra lấy nếp gấp trục.', tip: 'Dùng giấy xanh sẫm để cây trông chân thật.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp hai cạnh bên ngoài hướng vào nếp gấp dọc trung tâm để tạo hình chiếc diều.', tip: 'Miết phẳng nếp gấp từ đỉnh nhọn xuống đáy.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp góc nhọn bên dưới chéo lên trên trùng với đỉnh nhọn phía trên.', tip: 'Tờ giấy sẽ tạo thành hình tam giác gọn gàng.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gấp ngược phần chân tam giác xuống dưới chéo tạo nếp gấp xếp ly (Z-fold) làm các tầng lá cây.', tip: 'Gấp ly khoảng 1.5 cm.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Lặp lại thao tác gấp xếp ly ly một lần nữa để tạo tầng lá cây thông thứ hai.', tip: 'Hãy căn chỉnh sao cho các tầng lá nhỏ dần lên đỉnh.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Lật ngược lại mặt trước, vuốt phẳng các nếp gấp. Cây Thông Noel Origami xinh xắn đã hoàn thiện!', tip: 'Có thể dán thêm một ngôi sao vàng trên đỉnh cây.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' }
-        ]
+        step: 6,
+        instruction: 'Thực hiện Inside Reverse Fold (gập ngược vào trong) trên phần đầu nhọn phía trên để tạo cổ và đầu rồng.',
+        tip: 'Cổ rồng cần được uốn cong để tạo tư thế ngẩng đầu oai phong.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step6.jpg'
       },
       {
-        id: 16, // Thuyền Giấy
-        name: 'Thuyền Giấy',
-        steps: [
-          { step: 1, instruction: 'Sử dụng một tờ giấy hình chữ nhật A4 hoặc A5. Gấp đôi tờ giấy theo chiều ngang.', tip: 'Đường gấp ngang hướng lên trên.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp tiếp hai góc trên bên trái và bên phải hướng vào giữa trùng với trục dọc chính.', tip: 'Tờ giấy lúc này trông giống mái nhà.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp dải chữ nhật bên dưới hướng lên trên ở cả mặt trước và mặt sau của thuyền.', tip: 'Gấp sát chân mái nhà tam giác.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Nhét các góc nhọn thừa của dải giấy chéo vào bên trong để khóa cấu trúc tam giác.', tip: 'Mở rộng lòng tam giác ra rồi xếp xẹp lại thành hình thoi.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Gấp góc nhọn bên dưới hướng chéo lên trên ở cả mặt trước và sau để tạo tam giác nhỏ hơn.', tip: 'Tiếp tục mở lòng tam giác và ép phẳng thành hình thoi mới.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Dùng hai tay kéo nhẹ nhàng hai góc nhọn phía trên sang hai bên rìa. Thuyền Giấy Origami truyền thống đã lộ diện!', tip: 'Mở rộng khoang thuyền bên dưới để thuyền đứng vững được trên nước.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' }
-        ]
+        step: 7,
+        instruction: 'Thực hiện Inside Reverse Fold trên phần đuôi để tạo đuôi rồng cong ngược lên.',
+        tip: 'Tạo thêm nếp gấp zigzag nhỏ ở đuôi để trông sinh động hơn.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step7.jpg'
       },
       {
-        id: 17, // Máy Bay Giấy
-        name: 'Máy Bay Giấy',
-        steps: [
-          { step: 1, instruction: 'Sử dụng tờ giấy hình chữ nhật A4 phẳng phiu. Gấp đôi tờ giấy theo chiều dọc rồi mở phẳng ra.', tip: 'Miết trục nếp gấp dọc thẳng thớm ở giữa.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp hai góc nhọn ở đầu trên hướng vào trong sao cho trùng khít với nếp gấp dọc chính giữa.', tip: 'Tạo thành hình mũi nhọn cơ bản.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp toàn bộ phần mũi nhọn tam giác hướng xuống dưới.', tip: 'Phần đỉnh nhọn chạm vào nếp gấp dọc ở đáy.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Tiếp tục gấp hai góc ở đầu trên hướng chéo vào nếp gấp dọc trục giữa một lần nữa.', tip: 'Đầu mũi nhọn sẽ nằm bên dưới các mép gấp này.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Gấp đỉnh nhọn tam giác nhỏ nằm phía dưới hướng chéo ngược lên để khóa chặt hai cánh máy bay.', tip: 'Miết phẳng nếp gấp khóa này.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Gập đôi máy bay ra phía sau dọc theo đường sống giữa, sau đó gập chéo hai bên để tạo cánh rộng. Máy bay đã sẵn sàng cất cánh bay cao!', tip: 'Miết phẳng phần cánh để máy bay bay xa hơn.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' }
-        ]
+        step: 8,
+        instruction: 'Gấp phần mỏ/đầu nhọn nhỏ để tạo hàm và mỏ rồng. Mở nhẹ phần mỏ rồng để rồng có thể "há miệng".',
+        tip: 'Bước này cần nhẹ tay để tránh rách phần đầu nhỏ.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step8.jpg'
       },
       {
-        id: 18, // Xe Tải Giấy
-        name: 'Xe Tải Giấy',
-        steps: [
-          { step: 1, instruction: 'Gấp đôi tờ giấy vuông màu xanh theo chiều dọc để tạo nếp gấp trung tâm rồi mở ra.', tip: 'Nếp gấp này chia đôi chiều rộng xe tải.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp mép giấy bên dưới lên trên khoảng 2 cm để tạo gầm xe và bánh xe.', tip: 'Miết phẳng nếp gấp chân.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp hai mép dọc bên trái và bên phải hướng vào nếp gấp trục dọc ở tâm.', tip: 'Tờ giấy tạo thành dải chữ nhật dày đứng.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gập chéo góc trên bên trái hướng xuống dưới tạo hình kính chắn gió và đầu xe tải.', tip: 'Tạo góc nghiêng 45 độ.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Gập chéo góc trên bên phải chéo xuống tạo thành phần đuôi xe tải.', tip: 'Gập vừa phải để xe có tỷ lệ cân đối.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Gập đôi toàn bộ xe tải theo chiều ngang dọc theo nếp gấp giữa.', tip: 'Các mép gấp ở bước trước nằm phía trong.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' },
-          { step: 7, instruction: 'Dùng bút màu vẽ thêm hai bánh xe hình tròn lớn ở cạnh đáy gầm xe.', tip: 'Tô bánh xe màu đen để nổi bật.', image: 'https://images.unsplash.com/photo-1502691876148-a84978e59fa8?q=80&w=400' },
-          { step: 8, instruction: 'Vẽ thêm kính buồng lái xe và cửa thùng hàng. Xe Tải Giấy Origami siêu đáng yêu đã hoàn thành!', tip: 'Có thể vẽ thêm logo/tên hàng hóa lên thùng xe.', image: 'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=400' }
-        ]
+        step: 9,
+        instruction: 'Mở rộng hai cánh rồng ra hai bên và uốn cong để tạo hiệu ứng cánh đang giang rộng bay lên.',
+        tip: 'Uốn cong các cạnh cánh ra ngoài sẽ làm cánh trông thực tế hơn.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step9.jpg'
       },
       {
-        id: 19, // Chiếc Cốc Giấy
-        name: 'Chiếc Cốc Giấy',
-        steps: [
-          { step: 1, instruction: 'Sử dụng tờ giấy hình vuông màu xanh da trời. Gấp đôi theo đường chéo để tạo thành hình tam giác lớn nằm ngang.', tip: 'Cạnh gấp nằm ở phía dưới, đỉnh hướng lên trên.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Gấp góc nhọn bên dưới bên trái hướng chéo lên chạm vào mép nghiêng chéo đối diện bên phải.', tip: 'Đường gấp nằm song song với cạnh đáy.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Gấp tương tự góc nhọn bên phải hướng chéo sang bên trái chạm vào điểm mép nghiêng đối diện bên trái.', tip: 'Hai dải gấp sẽ xếp chéo bắt qua nhau.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gập một lớp giấy góc nhọn ở đỉnh phía trên hướng xuống phía dưới đè chèn qua lớp gấp trước.', tip: 'Đây là vành cốc mặt trước.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Lật ngược chiếc cốc lại và tiếp tục gập lớp giấy góc nhọn đỉnh còn lại xuống dưới.', tip: 'Vành cốc mặt sau đã được cố định.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Dùng tay bóp nhẹ hai bên hông để mở rộng miệng chiếc Cốc Giấy Origami của bạn ra và đứng vững!', tip: 'Mẫu cốc gấp này có thể đựng được vật nhẹ.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' }
-        ]
-      },
-      {
-        id: 20, // Ngôi Sao May Mắn
-        name: 'Ngôi Sao May Mắn',
-        steps: [
-          { step: 1, instruction: 'Sử dụng một dải giấy dài (kích thước khoảng 1x20 cm) có màu sắc nổi bật.', tip: 'Giấy sao mỏng uốn cong dễ dàng hơn.', image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=400' },
-          { step: 2, instruction: 'Uốn cong một đầu dải giấy chéo chèn qua nhau tạo thành một lỗ thắt nút thòng lọng.', tip: 'Tạo nút thắt giống ruy băng ruy-băng.', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400' },
-          { step: 3, instruction: 'Luồn đầu dải giấy ngắn qua lỗ và rút nhẹ nhàng từ hai đầu thắt nút thắt chặt hình ngũ giác đều.', tip: 'Vuốt phẳng hình ngũ giác đó, gập đầu thừa ngắn luồn vào trong.', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400' },
-          { step: 4, instruction: 'Gập dải giấy dài quấn quanh các cạnh của hình ngũ giác đều đặn.', tip: 'Dải giấy tự động chạy chéo theo các cạnh.', image: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=400' },
-          { step: 5, instruction: 'Tiếp tục quấn chéo dải giấy cho đến khi dải giấy chỉ còn thừa khoảng 1.5 cm.', tip: 'Quấn giấy khít với nhau nhưng không quá chặt.', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400' },
-          { step: 6, instruction: 'Nhét đầu giấy thừa còn lại luồn chui vào khe gấp ngũ giác ở bước trước để giữ chặt dải giấy.', tip: 'Đảm bảo ngũ giác gọn gàng và chắc chắn.', image: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=400' },
-          { step: 7, instruction: 'Dùng hai ngón tay cái và ngón trỏ bóp mạnh vào 5 trung điểm cạnh của ngũ giác để tạo độ phồng cho ngôi sao.', tip: 'Bóp nhẹ từ từ để các góc phồng lên tròn đều.', image: 'https://images.unsplash.com/photo-1502691876148-a84978e59fa8?q=80&w=400' },
-          { step: 8, instruction: 'Căn chỉnh lại các đỉnh nhọn ngũ giác. Ngôi Sao May Mắn Origami của bạn đã phồng đều cực kỳ dễ thương!', tip: 'Làm thật nhiều ngôi sao bỏ vào lọ thủy tinh ước nguyện nhé.', image: 'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=400' }
-        ]
+        step: 10,
+        instruction: 'Chỉnh lại toàn bộ dáng đứng vừng chắc trên 4 chân. Rồng Lửa Origami huyền thoại đã hoàn thành!',
+        tip: 'Thêm một chút hồ khô để rồng giữ dáng đẹp lâu hơn.',
+        image: 'https://www.origami-resource-center.com/images/origami-dragon-step10.jpg'
       }
     ];
 
-    // Chèn cho Trái Tim (ID 1)
-    await conn.query('DELETE FROM origami_steps WHERE origami_id = 1');
-    for (const s of heartSteps) {
-      await conn.query(
-        `INSERT INTO origami_steps (origami_id, step_number, instruction, tip, image_url, estimated_duration) 
-         VALUES (1, ?, ?, ?, ?, 1)`,
-        [s.step, s.instruction, s.tip, s.image]
-      );
-    }
-    console.log('✅ Đã cập nhật 10 bước gấp chi tiết cho Trái Tim!');
+    // ======================================================
+    // ID: 11 - THỎ CON (Rabbit/Bunny)
+    // ======================================================
+    const rabbitSteps = [
+      {
+        step: 1,
+        instruction: 'Bắt đầu với tờ giấy hình vuông 15x15 cm màu trắng hoặc hồng nhạt, mặt màu úp xuống dưới. Gấp đôi tờ giấy theo đường chéo để tạo tam giác.',
+        tip: 'Đỉnh nhọn của tam giác hướng lên phía trên.',
+        image: 'https://www.origami-fun.com/images/origami-bunny-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp góc nhọn bên trái và bên phải của đáy tam giác hướng lên chạm vào đỉnh tam giác phía trên.',
+        tip: 'Hai đỉnh góc bên phải khớp khít với đỉnh nhọn trên cùng.',
+        image: 'https://www.origami-fun.com/images/origami-bunny-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Gấp hai góc vừa gấp đó tách xa nhau sang hai bên tạo thành đôi tai thỏ đứng thẳng.',
+        tip: 'Hai tai thỏ cần đối xứng và độ cao như nhau.',
+        image: 'https://www.origami-fun.com/images/origami-bunny-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Lật mặt sau của mô hình lại. Gấp góc nhọn dưới cùng lên trên khoảng 1/3 chiều cao để tạo phần mõm thỏ.',
+        tip: 'Đây sẽ là phần khuôn mặt và mõm của chú thỏ.',
+        image: 'https://www.origami-fun.com/images/origami-bunny-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Gấp cạnh phía trên xuống để thu hẹp phần đầu thỏ và tạo chóp đầu tròn hơn.',
+        tip: 'Chỉ gấp một chút nhỏ để đỉnh đầu thỏ bo tròn.',
+        image: 'https://www.origami-fun.com/images/origami-bunny-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Lật mặt trước lại. Vẽ thêm đôi mắt tròn đen, mũi hồng nhỏ và vài sợi râu mỏng. Chú Thỏ Con Origami đáng yêu đã hoàn thành!',
+        tip: 'Dùng bút lông màu nhỏ để vẽ chi tiết mặt thỏ thêm sinh động.',
+        image: 'https://www.origami-fun.com/images/origami-bunny-step-6.jpg'
+      }
+    ];
 
-    // Chèn cho Hạc Giấy (ID 2)
-    await conn.query('DELETE FROM origami_steps WHERE origami_id = 2');
-    for (const s of swanSteps) {
-      await conn.query(
-        `INSERT INTO origami_steps (origami_id, step_number, instruction, tip, image_url, estimated_duration) 
-         VALUES (2, ?, ?, ?, ?, 1)`,
-        [s.step, s.instruction, s.tip, s.image]
-      );
-    }
-    console.log('✅ Đã cập nhật 10 bước gấp chi tiết cho Hạc Giấy (Swan)!');
+    // ======================================================
+    // ID: 12 - BƯỚM XINH (Butterfly)
+    // ======================================================
+    const butterflySteps = [
+      {
+        step: 1,
+        instruction: 'Đặt tờ giấy vuông mặt màu úp xuống. Gấp đôi theo chiều dọc và chiều ngang tạo nếp gấp "+" rồi mở ra. Tiếp theo gấp theo 2 đường chéo tạo nếp "X" rồi mở ra.',
+        tip: 'Cần có đủ 4 đường nếp gấp để thu gọn giấy thành Waterbomb Base.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Thu gọn giấy vào theo các nếp gấp chéo trong khi ấn nhẹ vào tâm giấy để tạo thành hình tam giác kép (Waterbomb Base).',
+        tip: 'Hình tam giác kép có 2 lớp ở cả hai cạnh.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Với hình tam giác đặt đỉnh nhọn lên trên, gấp hai góc nhọn ở đáy lên trên chạm vào đỉnh tam giác. Lặp lại ở lớp sau.',
+        tip: 'Đây tạo thành hình thoi, mỗi phía 2 cánh bướm.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Lật mô hình lại. Gấp góc nhọn phía dưới lên trên vượt ra ngoài cạnh trên khoảng 1 cm.',
+        tip: 'Phần nhô ra sẽ được gập lại ở bước sau để khóa thân bướm.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Gấp phần nhô ra đó đè qua cạnh trên để khóa chặt cấu trúc thân bướm. Miết phẳng mạnh.',
+        tip: 'Nếp gấp khóa này giúp thân bướm giữ nguyên hình dạng.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Gấp đôi toàn bộ cấu trúc theo trục dọc chính giữa. Đặt mô hình nằm ngang với thân ở giữa và cánh xòe ra hai bên.',
+        tip: 'Thân bướm là phần giữa dày được gấp đôi lại.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-6.jpg'
+      },
+      {
+        step: 7,
+        instruction: 'Mở nhẹ và uốn cong 4 cánh bướm ra phía ngoài. Bướm Xinh Origami đã hoàn thành và sẵn sàng "bay"!',
+        tip: 'Uốn cong nhẹ từng cánh để bướm trông tự nhiên và sống động hơn.',
+        image: 'https://www.origami-fun.com/images/origami-butterfly-step-7.jpg'
+      }
+    ];
 
-    // Chèn cho các mẫu khác
-    for (const m of otherModels) {
-      await conn.query('DELETE FROM origami_steps WHERE origami_id = ?', [m.id]);
-      for (const s of m.steps) {
+    // ======================================================
+    // ID: 13 - CON CÁ VÀNG (Goldfish)
+    // ======================================================
+    const goldfishSteps = [
+      {
+        step: 1,
+        instruction: 'Sử dụng tờ giấy vuông màu cam/vàng 15x15 cm. Đặt mặt màu hướng lên trên. Gấp đôi theo đường chéo tạo tam giác, đỉnh nhọn ở trên, rồi mở ra.',
+        tip: 'Nếp gấp chéo sẽ là trục đối xứng chính của cá.',
+        image: 'https://www.origami-fun.com/images/origami-fish-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp hai cạnh bên ngoài hướng vào nếp gấp dọc trung tâm vừa tạo để tạo hình chiếc diều (kite shape).',
+        tip: 'Miết thật phẳng hai mép giấy gấp vào giữa.',
+        image: 'https://www.origami-fun.com/images/origami-fish-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Lật mô hình. Gấp đôi theo chiều dọc dọc theo trục chính giữa (gấp mặt sau ra ngoài).',
+        tip: 'Đây là thân cá sau khi gấp đôi lại.',
+        image: 'https://www.origami-fun.com/images/origami-fish-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Thực hiện Inside Reverse Fold trên đỉnh nhọn ở đuôi cá: mở nếp gấp đuôi ra và gập phần đuôi lên tạo vây đuôi cá vểnh lên.',
+        tip: 'Đây là bước tạo vây đuôi đặc trưng của cá vàng.',
+        image: 'https://www.origami-fun.com/images/origami-fish-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Gấp góc nhọn phần đầu cá chéo xuống dưới 45 độ để tạo phần miệng và đầu cá hướng chúi nhẹ.',
+        tip: 'Đầu cá hướng xuống dưới nhẹ trông giống cá đang bơi.',
+        image: 'https://www.origami-fun.com/images/origami-fish-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Mở nhẹ hai bên thân cá để cá phồng lên đôi chút. Dùng bút vẽ mắt tròn lớn cho chú cá. Con Cá Vàng Origami đã hoàn thành!',
+        tip: 'Đặt nhẹ cá trên mặt phẳng - cá sẽ tự đứng vững nhờ phần vây đuôi vểnh.',
+        image: 'https://www.origami-fun.com/images/origami-fish-step-6.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 14 - HOA HỒNG (Rose - Kawasaki Rose simplified)
+    // ======================================================
+    const roseSteps = [
+      {
+        step: 1,
+        instruction: 'Sử dụng tờ giấy đỏ 20x20 cm. Gấp tờ giấy tạo lưới 4x4 ô bằng cách gấp đôi 3 lần theo chiều dọc và 3 lần chiều ngang. Mở tờ giấy ra.',
+        tip: 'Đường lưới 4x4 rất quan trọng - dùng thước kẻ để căn chính xác.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gập cả 4 góc ngoài của tờ giấy chạm vào ô lưới đầu tiên gần tâm nhất (Blintz fold). Miết phẳng.',
+        tip: 'Đây là bước Blintz fold cơ bản. Tờ giấy thu nhỏ thành hình vuông nhỏ hơn.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Lật ngược mặt sau lại. Gấp tiếp 4 góc hướng vào tâm (Blintz fold lần 2).',
+        tip: 'Giấy ngày càng dày hơn. Hãy dùng móng tay miết mạnh các nếp.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Lật lại mặt trước. Gấp tiếp 4 góc vào tâm lần thứ 3.',
+        tip: 'Tờ giấy lúc này rất dày và cứng. Hãy kiên nhẫn.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Lật ngược lại. Gập 4 góc nhỏ còn lại vào tâm. Ấn mạnh để cố định.',
+        tip: 'Đây là lớp đế của hoa hồng phía sau.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Lật mặt trước lại. Gấp nhẹ 4 góc nhọn ở tâm ra phía rìa ngoài để tạo nhụy hoa.',
+        tip: 'Gấp nhẹ tay - đây là phần trang trí nhụy hoa ở trung tâm.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-6.jpg'
+      },
+      {
+        step: 7,
+        instruction: 'Lộn từng lớp cánh hoa từ dưới lên trên ra phía ngoài bằng cách đặt ngón tay cái dưới và kéo nhẹ cạnh cánh ra ngoài.',
+        tip: 'Làm từng cánh một và uốn cong nhẹ ra ngoài.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-7.jpg'
+      },
+      {
+        step: 8,
+        instruction: 'Tiếp tục lộn lớp cánh hoa tiếp theo. Uốn cong đầu cánh ra ngoài để tạo độ nở rộ như hoa hồng thật.',
+        tip: 'Tổng cộng có 3-4 lớp cánh hoa cần được lộn ra.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-8.jpg'
+      },
+      {
+        step: 9,
+        instruction: 'Chỉnh trang lại các lớp cánh cho đều và căng phồng, uốn cong nhẹ ra ngoài để tạo hình hoa nở rộ.',
+        tip: 'Nếu dùng giấy mềm có thể dùng hơi thở thổi nhẹ vào tâm hoa để cánh phồng lên.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-9.jpg'
+      },
+      {
+        step: 10,
+        instruction: 'Hoàn chỉnh! Đóa Hoa Hồng Origami rực rỡ đã nở. Có thể gắn thêm cành lá từ giấy xanh để tặng người thân.',
+        tip: 'Xịt một chút keo hair spray lên hoa để giữ hình dáng đẹp lâu dài.',
+        image: 'https://www.origami-resource-center.com/images/origami-rose-step-10.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 15 - CÂY THÔNG (Christmas Tree / Pine Tree)
+    // Nguồn: origamiway.com/origami-christmas-tree
+    // ======================================================
+    const christmasTreeSteps = [
+      {
+        step: 1,
+        instruction: 'Dùng tờ giấy vuông xanh lá 15x15 cm. Đặt mặt màu hướng xuống. Gấp đôi theo đường chéo tạo tam giác lớn.',
+        tip: 'Đỉnh nhọn của tam giác hướng lên trên.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp hai góc nhọn ở đáy tam giác lên trên chạm vào đỉnh tam giác để tạo hình vuông nhỏ.',
+        tip: 'Hai cạnh dưới giờ trở thành đường gấp chéo từ hai bên.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Gấp các góc nhọn bên ngoài của hình vuông này hướng vào giữa đường nếp gấp dọc.',
+        tip: 'Tạo hình thoi thu gọn ở cả mặt trước và sau.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Squash Fold (gấp xẹp): Nâng lớp trên cùng lên rồi ép xẹp xuống sang một bên để tạo hình cành lá tầng đầu của cây thông.',
+        tip: 'Đây là bước quan trọng để tạo cành lá tầng cây thông.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Lặp lại thao tác Squash Fold ở mặt sau để tạo cành lá tầng thứ hai.',
+        tip: 'Hai tầng lá trước và sau phải bằng nhau.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Gấp đáy cây lên để tạo phần thân cây và đế cây thông đứng vững.',
+        tip: 'Gấp thân cây khoảng 1 cm để tạo nền cây đứng.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-6.jpg'
+      },
+      {
+        step: 7,
+        instruction: 'Tách nhẹ các lớp cánh lá ra để cây thông trông xum xuê hơn. Thêm ngôi sao vàng nhỏ trên đỉnh cây.',
+        tip: 'Cây Thông Noel Origami xinh xắn hoàn thành! Có thể gắn thêm hạt cườm nhỏ màu sắc trang trí.',
+        image: 'https://www.origamiway.com/pics/origami-christmas-tree-step-7.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 16 - THUYỀN GIẤY (Traditional Paper Boat)
+    // ======================================================
+    const boatSteps = [
+      {
+        step: 1,
+        instruction: 'Sử dụng tờ giấy chữ nhật A4 (hay A5). Gấp đôi tờ giấy theo chiều ngang, cạnh gấp ở phía trên.',
+        tip: 'Đường gấp nằm chính xác ở giữa chiều dài tờ giấy.',
+        image: 'https://www.wikihow.com/images/thumb/7/7c/Make-a-Paper-Boat-Step-1-Version-7.jpg/550px-Make-a-Paper-Boat-Step-1-Version-7.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp tờ giấy đôi một lần nữa theo chiều dọc (ngắn) để lấy nếp gấp giữa, rồi mở tờ giấy phẳng lại như trước.',
+        tip: 'Nếp dọc ở giữa tờ giấy chỉ là đường định vị trung tâm.',
+        image: 'https://www.wikihow.com/images/thumb/1/1e/Make-a-Paper-Boat-Step-2-Version-7.jpg/550px-Make-a-Paper-Boat-Step-2-Version-7.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Gấp hai góc phía trên bên trái và bên phải hướng vào nếp gấp dọc ở giữa, tạo thành hình mái nhà tam giác ở phần trên.',
+        tip: 'Hai góc phải chạm đúng vào đường trung tâm.',
+        image: 'https://www.wikihow.com/images/thumb/e/e0/Make-a-Paper-Boat-Step-3-Version-7.jpg/550px-Make-a-Paper-Boat-Step-3-Version-7.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Gấp dải giấy chữ nhật phía dưới lên trên ở cả mặt trước và mặt sau, gấp sát chân mái nhà tam giác.',
+        tip: 'Dải chân thuyền gấp lên sẽ tạo thành mạn thuyền sau này.',
+        image: 'https://www.wikihow.com/images/thumb/8/88/Make-a-Paper-Boat-Step-4-Version-7.jpg/550px-Make-a-Paper-Boat-Step-4-Version-7.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Mở rộng lòng hình tam giác ra và ép xẹp lại thành hình thoi. Lặp lại ở bước gấp tiếp theo.',
+        tip: 'Chèn ngón tay vào bên trong để hình thoi xẹp phẳng đều.',
+        image: 'https://www.wikihow.com/images/thumb/8/84/Make-a-Paper-Boat-Step-5-Version-7.jpg/550px-Make-a-Paper-Boat-Step-5-Version-7.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Với hình thoi mới, gấp góc dưới lên trên ở cả hai mặt để tạo tam giác nhỏ.',
+        tip: 'Mở hình thoi và ép xẹp lại thành hình thoi nhỏ hơn.',
+        image: 'https://www.wikihow.com/images/thumb/9/96/Make-a-Paper-Boat-Step-6-Version-7.jpg/550px-Make-a-Paper-Boat-Step-6-Version-7.jpg'
+      },
+      {
+        step: 7,
+        instruction: 'Dùng hai tay kéo nhẹ hai góc nhọn phía trên hình thoi sang hai bên. Thuyền Giấy sẽ tự mở ra thành hình thuyền 3D hoàn chỉnh!',
+        tip: 'Kéo từ từ và đều hai bên để mạn thuyền mở đẹp. Mở rộng đáy thuyền để thuyền đứng vững.',
+        image: 'https://www.wikihow.com/images/thumb/3/3d/Make-a-Paper-Boat-Step-7-Version-7.jpg/550px-Make-a-Paper-Boat-Step-7-Version-7.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 17 - MÁY BAY GIẤY (Paper Airplane - Classic Dart)
+    // ======================================================
+    const airplaneSteps = [
+      {
+        step: 1,
+        instruction: 'Sử dụng tờ giấy chữ nhật A4 đặt theo chiều dọc (portrait). Gấp đôi tờ giấy dọc theo chiều dài để lấy nếp gấp trung tâm, rồi mở phẳng ra.',
+        tip: 'Đây là trục đối xứng chính giữa máy bay.',
+        image: 'https://www.wikihow.com/images/thumb/5/59/Make-a-Paper-Airplane-Step-1-Version-9.jpg/550px-Make-a-Paper-Airplane-Step-1-Version-9.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp hai góc nhọn ở đầu trên bên trái và bên phải hướng chéo vào nếp gấp dọc trung tâm, tạo thành hình tam giác mũi nhọn ở phần đầu.',
+        tip: 'Hai cạnh gấp chéo phải gặp nhau khít tại đường trục giữa.',
+        image: 'https://www.wikihow.com/images/thumb/2/24/Make-a-Paper-Airplane-Step-2-Version-9.jpg/550px-Make-a-Paper-Airplane-Step-2-Version-9.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Gấp hai cạnh mới tạo thành hướng vào trục giữa một lần nữa để mũi máy bay thêm nhọn và thon dài.',
+        tip: 'Lặp lại thao tác gấp vào giữa để mũi sắc hơn.',
+        image: 'https://www.wikihow.com/images/thumb/0/0e/Make-a-Paper-Airplane-Step-3-Version-9.jpg/550px-Make-a-Paper-Airplane-Step-3-Version-9.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Gấp đôi toàn bộ máy bay theo đường trục dọc giữa (gấp ra phía sau). Máy bay phải có thân đôi đối xứng hoàn toàn.',
+        tip: 'Giữ mũi nhọn không bị lệch khi gấp đôi thân máy bay.',
+        image: 'https://www.wikihow.com/images/thumb/f/f4/Make-a-Paper-Airplane-Step-4-Version-9.jpg/550px-Make-a-Paper-Airplane-Step-4-Version-9.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Gấp chéo cánh máy bay phải xuống sao cho cạnh trên cánh song song với đường thân máy bay. Lặp lại ở cánh trái.',
+        tip: 'Hai cánh phải đối xứng hoàn toàn nhau để máy bay bay thẳng.',
+        image: 'https://www.wikihow.com/images/thumb/8/8e/Make-a-Paper-Airplane-Step-5-Version-9.jpg/550px-Make-a-Paper-Airplane-Step-5-Version-9.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Nâng hai cánh lên ngang bằng thân máy bay hoặc hơi hếch nhẹ lên tạo hình chữ Y khi nhìn từ sau. Máy Bay Giấy đã sẵn sàng bay!',
+        tip: 'Ném mạnh và thẳng về phía trước để máy bay đạt tầm xa nhất.',
+        image: 'https://www.wikihow.com/images/thumb/0/0b/Make-a-Paper-Airplane-Step-6-Version-9.jpg/550px-Make-a-Paper-Airplane-Step-6-Version-9.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 18 - XE TẢI GIẤY (Truck/Car)
+    // ======================================================
+    const truckSteps = [
+      {
+        step: 1,
+        instruction: 'Sử dụng tờ giấy chữ nhật. Gấp đôi theo chiều ngang (cạnh dài gấp lại). Miết phẳng nếp gấp.',
+        tip: 'Tờ giấy sau khi gấp có tỷ lệ giống thân xe tải.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp mép dài phía dưới lên trên khoảng 1.5-2 cm để tạo gầm xe và nơi đặt bánh xe.',
+        tip: 'Gấp đều cả hai lớp giấy cùng lúc.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Gấp hai mép ngắn ở hai đầu vào trong khoảng 1-1.5 cm để tạo đầu và đuôi xe.',
+        tip: 'Gấp hai đầu vào trong để hoàn thiện hình dáng xe.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Gấp chéo góc trên bên trái xuống dưới khoảng 45 độ để tạo phần buồng lái kính nghiêng.',
+        tip: 'Góc buồng lái nghiêng cho thấy hình dáng cabin xe tải hiện đại.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Gấp các góc nhọn thừa ra phía sau hoặc tucked in vào trong để hoàn thiện hình dáng gọn gàng.',
+        tip: 'Giúp xe có viền gọn và không có góc nhọn thừa.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Dùng bút màu đen vẽ 4 bánh xe hình tròn ở phần gầm xe phía dưới.',
+        tip: 'Tô màu bánh xe đen và thêm vành bạc để trông đẹp hơn.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-6.jpg'
+      },
+      {
+        step: 7,
+        instruction: 'Vẽ thêm cửa sổ kính lái, đèn pha và cửa thùng hàng. Xe Tải Giấy Origami đã hoàn thành!',
+        tip: 'Tô màu sắc tươi sáng cho xe để trông sinh động.',
+        image: 'https://www.origami-fun.com/images/origami-car-step-7.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 19 - CHIẾC CỐC GIẤY (Paper Cup)
+    // Nguồn: origami.me/cup
+    // ======================================================
+    const cupSteps = [
+      {
+        step: 1,
+        instruction: 'Sử dụng tờ giấy hình vuông. Đặt tờ giấy như hình thoi (xoay 45 độ, một góc hướng về phía bạn). Gấp đôi lên trên tạo hình tam giác lớn nằm ngang.',
+        tip: 'Cạnh gấp nằm trên, đỉnh nhọn hướng về phía bạn ở dưới.',
+        image: 'https://www.origami-instructions.com/images/origami-cup-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Gấp góc nhọn bên trái của đáy tam giác chéo lên phía bên phải, sao cho cạnh trên của nếp gấp song song với đáy tam giác.',
+        tip: 'Điểm gấp ở cạnh trái và đầu nhọn chạm vào cạnh nghiêng bên phải.',
+        image: 'https://www.origami-instructions.com/images/origami-cup-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Tương tự gấp góc nhọn bên phải chéo sang bên trái đối xứng với bước vừa làm.',
+        tip: 'Hai nếp gấp chéo sẽ xếp chồng lên nhau ở phần giữa.',
+        image: 'https://www.origami-instructions.com/images/origami-cup-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Gập lớp giấy trên của đỉnh tam giác phía trên xuống phía trước, đè chèn vào túi gấp ở giữa.',
+        tip: 'Đây là vành phía trước của cốc.',
+        image: 'https://www.origami-instructions.com/images/origami-cup-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Lật mặt sau của cốc lại. Gập lớp đỉnh tam giác còn lại xuống phía trước (mặt sau của cốc) để khóa cấu trúc.',
+        tip: 'Đây là vành phía sau của cốc.',
+        image: 'https://www.origami-instructions.com/images/origami-cup-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Dùng tay bóp nhẹ hai bên cốc để mở rộng khoang bên trong. Chiếc Cốc Giấy Origami sẵn sàng đựng đồ nhẹ!',
+        tip: 'Cốc giấy truyền thống này có thể đựng hạt, kẹo nhỏ hoặc thậm chí nước trong thời gian ngắn!',
+        image: 'https://www.origami-instructions.com/images/origami-cup-6.jpg'
+      }
+    ];
+
+    // ======================================================
+    // ID: 20 - NGÔI SAO MAY MẮN (Lucky Star)
+    // Nguồn: origami.me/lucky-star
+    // ======================================================
+    const luckyStarSteps = [
+      {
+        step: 1,
+        instruction: 'Chuẩn bị một dải giấy dài và mỏng, kích thước tiêu chuẩn khoảng 1.5 cm rộng x 30 cm dài. Có thể dùng giấy origami chuyên dụng hoặc cắt từ tờ giấy A4.',
+        tip: 'Dải giấy càng dài càng tạo được ngôi sao phồng đẹp hơn.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-1.jpg'
+      },
+      {
+        step: 2,
+        instruction: 'Uốn cong đầu ngắn của dải giấy tạo vòng lặp và luồn qua tạo nút thắt đơn giản.',
+        tip: 'Tạo nút thắt thoải (không siết chặt ngay) để dễ điều chỉnh.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-2.jpg'
+      },
+      {
+        step: 3,
+        instruction: 'Kéo hai đầu dải giấy từ từ nhẹ nhàng cho đến khi nút thắt siết chặt thành hình ngũ giác đều phẳng. Nhét phần đầu ngắn thừa vào trong.',
+        tip: 'Hình ngũ giác phải cân đối và phẳng. Không siết quá chặt.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-3.jpg'
+      },
+      {
+        step: 4,
+        instruction: 'Gấp dải giấy dài quấn chéo theo các cạnh của ngũ giác, tự nhiên theo đường gấp của cạnh ngũ giác.',
+        tip: 'Dải giấy tự chạy theo góc 72 độ của ngũ giác đều.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-4.jpg'
+      },
+      {
+        step: 5,
+        instruction: 'Tiếp tục quấn dải giấy quanh các cạnh ngũ giác cho đến khi chỉ còn thừa khoảng 2 cm.',
+        tip: 'Quấn khít nhưng không quá chặt để sau này có thể bóp phồng ngôi sao.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-5.jpg'
+      },
+      {
+        step: 6,
+        instruction: 'Nhét phần đầu giấy thừa cuối cùng vào khe gấp của ngũ giác để cố định dải giấy.',
+        tip: 'Nếu đuôi giấy quá dài thì cắt bớt trước khi nhét vào.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-6.jpg'
+      },
+      {
+        step: 7,
+        instruction: 'Dùng hai ngón tay cái bóp mạnh vào giữa mỗi cạnh của ngũ giác theo thứ tự để tạo độ phồng cho ngôi sao. Làm lần lượt cả 5 cạnh.',
+        tip: 'Bóp nhẹ và đều tay để 5 góc nhọn của ngôi sao nổi lên đồng đều.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-7.jpg'
+      },
+      {
+        step: 8,
+        instruction: 'Chỉnh lại 5 góc nhọn và căn chỉnh hình dáng. Ngôi Sao May Mắn Origami đã hoàn thành! Làm nhiều ngôi sao bỏ vào lọ thủy tinh để ước nguyện!',
+        tip: 'Truyền thuyết: tặng 100 ngôi sao cho người bạn yêu thương sẽ mang lại may mắn cả năm.',
+        image: 'https://www.origami-resource-center.com/images/lucky-star-step-8.jpg'
+      }
+    ];
+
+    // =========================================================
+    // THỰC HIỆN CẬP NHẬT VÀO DATABASE
+    // =========================================================
+    const allModels = [
+      { id: 1, name: 'Trái Tim', steps: heartSteps },
+      { id: 2, name: 'Hạc Giấy', steps: craneSteps },
+      { id: 3, name: 'Rồng Lửa', steps: dragonSteps },
+      { id: 11, name: 'Thỏ Con', steps: rabbitSteps },
+      { id: 12, name: 'Bướm Xinh', steps: butterflySteps },
+      { id: 13, name: 'Con Cá Vàng', steps: goldfishSteps },
+      { id: 14, name: 'Hoa Hồng', steps: roseSteps },
+      { id: 15, name: 'Cây Thông', steps: christmasTreeSteps },
+      { id: 16, name: 'Thuyền Giấy', steps: boatSteps },
+      { id: 17, name: 'Máy Bay Giấy', steps: airplaneSteps },
+      { id: 18, name: 'Xe Tải Giấy', steps: truckSteps },
+      { id: 19, name: 'Chiếc Cốc Giấy', steps: cupSteps },
+      { id: 20, name: 'Ngôi Sao May Mắn', steps: luckyStarSteps },
+    ];
+
+    for (const model of allModels) {
+      // Xóa bước cũ
+      await conn.query('DELETE FROM origami_steps WHERE origami_id = ?', [model.id]);
+      // Chèn bước mới
+      for (const s of model.steps) {
         await conn.query(
           `INSERT INTO origami_steps (origami_id, step_number, instruction, tip, image_url, estimated_duration) 
            VALUES (?, ?, ?, ?, ?, 1)`,
-          [m.id, s.step, s.instruction, s.tip, s.image]
+          [model.id, s.step, s.instruction, s.tip, s.image]
         );
       }
-      console.log(`✅ Đã cập nhật ${m.steps.length} bước gấp chi tiết cho mẫu "${m.name}"!`);
+      console.log(`✅ [${model.id}] "${model.name}": ${model.steps.length} bước gấp đã cập nhật.`);
     }
 
-    console.log('🎉 Hoàn thành cập nhật toàn bộ hướng dẫn gấp chi tiết thành công!');
+    console.log('\n🎉 Hoàn thành! Tất cả mẫu đã có hướng dẫn gấp riêng biệt và chính xác!');
+
+  } catch (err) {
+    console.error('❌ Lỗi:', err.message);
   } finally {
     await conn.end();
   }
