@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
@@ -278,7 +279,8 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
                                     itemCount: steps.length,
                                     itemBuilder: (context, index) {
                                       final st = steps[index];
-                                      return _buildStepPreview(index + 1, emoji);
+                                      final imgPath = st['image_url'] ?? st['imageUrl'] ?? '';
+                                      return _buildStepPreview(index + 1, imgPath, emoji);
                                     },
                                   ),
                                 ),
@@ -372,7 +374,7 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
     );
   }
 
-  Widget _buildStepPreview(int stepNum, String modelEmoji) {
+  Widget _buildStepPreview(int stepNum, String imagePath, String modelEmoji) {
     return Container(
       width: 100,
       margin: const EdgeInsets.only(right: 12),
@@ -385,8 +387,26 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('Bước $stepNum', style: const TextStyle(fontSize: 10, color: AppTheme.muted, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text(modelEmoji, style: const TextStyle(fontSize: 32)),
+          const SizedBox(height: 6),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: imagePath.isEmpty
+                  ? Center(child: Text(modelEmoji, style: const TextStyle(fontSize: 32)))
+                  : imagePath.startsWith('http')
+                      ? Image.network(
+                          imagePath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Center(child: Text(modelEmoji, style: const TextStyle(fontSize: 32))),
+                        )
+                      : Image.file(
+                          File(imagePath),
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Center(child: Text(modelEmoji, style: const TextStyle(fontSize: 32))),
+                        ),
+            ),
+          ),
+          const SizedBox(height: 4),
         ],
       ),
     );
