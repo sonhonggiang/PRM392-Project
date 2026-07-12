@@ -13,10 +13,12 @@ const adminOnly = (req, res, next) => {
 };
 
 router.use(authMiddleware);
+
+// Quản lý danh mục (GET public cho mọi user đã đăng nhập)
+router.get('/categories', adminController.getCategories);
+
 router.use(adminOnly);
 
-// Quản lý danh mục
-router.get('/categories', adminController.getCategories);
 router.post('/categories', adminController.addCategory);
 router.put('/categories/:id', adminController.updateCategory);
 router.delete('/categories/:id', adminController.deleteCategory);

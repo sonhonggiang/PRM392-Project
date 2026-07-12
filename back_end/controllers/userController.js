@@ -266,7 +266,8 @@ async function updateProgress(req, res) {
 
     // Cộng điểm kinh nghiệm XP nếu hoàn thành mới
     if (isNewlyCompleted) {
-      xpReward = 50; // Thưởng 50 XP khi hoàn thành gấp 1 mẫu
+      const multiplier = parseInt(req.body.boosterMultiplier) || 1;
+      xpReward = 50 * multiplier; // Thưởng nhân với multiplier
       await db.query('UPDATE users SET xp = xp + ? WHERE id = ?', [xpReward, userId]);
       
       // Tạo thông báo hoàn thành
@@ -341,5 +342,25 @@ module.exports = {
   getUserBadges,
   getUserAnalytics,
   getNotifications,
-  markNotificationRead
+  markNotificationRead,
+  claimCampaign
 };
+
+async function claimCampaign(req, res) {
+  const userId = req.user.id;
+  const { campId } = req.params;
+  try {
+    let xpBonus = campId === '1' ? 150 : 200;
+    await db.query('UPDATE users SET xp = xp + ? WHERE id = ?', [xpBonus, userId]);
+    
+    // Tạo thông báo nhận quà
+    await db.query(
+      'INSERT INTO notifications (user_id, title, message, type, emoji) VALUES (?, ?, ?, ?, ?)',
+      [userId, 'Đã nhận thưởng!', `Chúc mừng bạn đã nhận ${xpBonus} XP từ chiến dịch!`, 'badge', '🎁']
+    );
+
+    res.status(200).json({ message: 'Claimed successfully', xpBonus });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi nhận phần thưởng chiến dịch!', error: error.message });
+  }
+}

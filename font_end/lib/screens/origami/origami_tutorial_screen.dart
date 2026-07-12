@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/auth_provider.dart';
@@ -130,11 +131,16 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
     // ... (guest logic remains same)
 
     setState(() => _isLoading = true);
-
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final activeBooster = prefs.getString('active_booster') ?? '';
+      int multiplier = 1;
+      if (activeBooster == 'x2_xp') multiplier = 2;
+      if (activeBooster == 'x3_xp') multiplier = 3;
+
       if (widget.isDailyChallenge) {
         // 1. Gọi API hoàn thành thử thách ngày
-        final result = await ApiService.completeDailyChallenge();
+        final result = await ApiService.completeDailyChallenge(boosterMultiplier: multiplier);
         if (result != null) {
           xpEarned = result['rewardXp'] ?? 100;
         }
@@ -144,11 +150,17 @@ class _OrigamiTutorialScreenState extends State<OrigamiTutorialScreen> {
           widget.origamiId, 
           widget.steps.length, 
           true,
-          duration: durationSeconds
+          duration: durationSeconds,
+          boosterMultiplier: multiplier,
         );
         if (result != null) {
           xpEarned = result['xpReward'] ?? 50;
         }
+      }
+
+      // Tiêu thụ booster sau khi dùng
+      if (multiplier > 1) {
+        await prefs.remove('active_booster');
       }
 
       if (mounted) {

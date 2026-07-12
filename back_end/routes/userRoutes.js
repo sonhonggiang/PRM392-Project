@@ -16,5 +16,6 @@ router.get('/badges', userController.getUserBadges);
 router.get('/analytics', userController.getUserAnalytics);
 router.get('/notifications', userController.getNotifications);
 router.put('/notifications/:id/read', userController.markNotificationRead);
+router.post('/claim-campaign/:campId', userController.claimCampaign);
 
 module.exports = router;

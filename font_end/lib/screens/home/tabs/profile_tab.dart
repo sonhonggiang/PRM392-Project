@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
@@ -191,8 +193,25 @@ class _ProfileTabState extends State<ProfileTab> {
                                     width: 88,
                                     height: 88,
                                   )
-                                : const Center(
-                                    child: Text('👤', style: TextStyle(fontSize: 46))),
+                                : (user.avatarUrl.isNotEmpty
+                                    ? (user.avatarUrl.startsWith('http')
+                                        ? Image.network(
+                                            user.avatarUrl,
+                                            fit: BoxFit.cover,
+                                            width: 88,
+                                            height: 88,
+                                            errorBuilder: (c, e, s) => const Center(child: Text('👤', style: TextStyle(fontSize: 46))),
+                                          )
+                                        : (user.avatarUrl.contains('/') || user.avatarUrl.contains('\\'))
+                                            ? Image.file(
+                                                File(user.avatarUrl),
+                                                fit: BoxFit.cover,
+                                                width: 88,
+                                                height: 88,
+                                                errorBuilder: (c, e, s) => const Center(child: Text('👤', style: TextStyle(fontSize: 46))),
+                                              )
+                                            : Center(child: Text(user.avatarUrl, style: const TextStyle(fontSize: 46))))
+                                    : const Center(child: Text('👤', style: TextStyle(fontSize: 46)))),
                           ),
                         ),
                       ),
@@ -298,6 +317,12 @@ class _ProfileTabState extends State<ProfileTab> {
                   const Text('Tiến trình học tập', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
                   const SizedBox(height: 12),
                   _buildProgressSection(),
+                  const SizedBox(height: 24),
+
+                  // ── Nhật ký học tập ──────────────────────────────────
+                  const Text('📝 Nhật ký học tập (Study Log)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+                  const SizedBox(height: 12),
+                  _buildLearningLogSection(),
                   const SizedBox(height: 24),
 
                   // ── Menu ──────────────────────────────────────────────
@@ -525,6 +550,86 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
+  Widget _buildLearningLogSection() {
+    final todayStr = DateTime.now().toIso8601String().split('T')[0];
+    final completedToday = _historyItems.where((item) {
+      if (item['is_completed'] != 1 && item['isCompleted'] != true) return false;
+      final dateStr = item['completed_at'] ?? item['completedAt'];
+      if (dateStr == null) return false;
+      return dateStr.toString().startsWith(todayStr);
+    }).toList();
+
+    int secondsToday = 0;
+    for (var item in completedToday) {
+      secondsToday += (item['completion_duration'] ?? item['completionDuration'] ?? 0) as int;
+    }
+    final minsToday = (secondsToday / 60).ceil();
+    final xpToday = completedToday.length * 50;
+
+    // Tuần này (7 ngày gần nhất)
+    final completedThisWeek = _historyItems.where((item) {
+      if (item['is_completed'] != 1 && item['isCompleted'] != true) return false;
+      final dateStr = item['completed_at'] ?? item['completedAt'];
+      if (dateStr == null) return false;
+      try {
+        final date = DateTime.parse(dateStr.toString());
+        return DateTime.now().difference(date).inDays < 7;
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+
+    int secondsWeek = 0;
+    for (var item in completedThisWeek) {
+      secondsWeek += (item['completion_duration'] ?? item['completionDuration'] ?? 0) as int;
+    }
+    final minsWeek = (secondsWeek / 60).ceil();
+    final xpWeek = completedThisWeek.length * 50;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        children: [
+          _buildLogItem('Hôm nay', '${completedToday.length} mẫu', '$minsToday phút', '+$xpToday XP'),
+          const Divider(height: 20, color: AppTheme.border),
+          _buildLogItem('Tuần này', '${completedThisWeek.length} mẫu', '$minsWeek phút', '+$xpWeek XP'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogItem(String title, String countText, String timeText, String xpText) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.indigo)),
+            const SizedBox(height: 4),
+            Text('Đã gấp: $countText • Thời gian: $timeText', style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: AppTheme.teal.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            xpText,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.teal),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Menu item ────────────────────────────────────────────────────────────
   Widget _buildMenuAction(BuildContext context, IconData icon, String title, Color iconColor, VoidCallback onTap) {
     return ListTile(
@@ -731,6 +836,24 @@ class _ProfileTabState extends State<ProfileTab> {
                       context,
                       MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                     ).then((_) => _loadProfileData());
+                  }),
+                  _divider(),
+                  _settingsTile(Icons.info_outline_rounded, 'Xem lại hướng dẫn', AppTheme.teal, () async {
+                    Navigator.pop(context);
+                    final prefs = await SharedPreferences.getInstance();
+                    final auth = context.read<AuthProvider>();
+                    final user = auth.currentUser;
+                    final key = 'has_completed_onboarding_${user.email.isNotEmpty ? user.email : "guest"}';
+                    await prefs.remove(key);
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Đã đặt lại hướng dẫn! Vui lòng mở lại ứng dụng hoặc chuyển tab để kích hoạt hướng dẫn.'),
+                          backgroundColor: AppTheme.teal,
+                        ),
+                      );
+                    }
                   }),
                   _divider(),
                   _settingsTile(Icons.language_rounded, 'Ngôn ngữ: Tiếng Việt', AppTheme.muted, () {

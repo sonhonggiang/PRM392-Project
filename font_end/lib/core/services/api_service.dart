@@ -149,7 +149,7 @@ class ApiService {
     } catch (e) { return []; }
   }
 
-  static Future<Map<String, dynamic>?> updateProgress(dynamic origamiId, int step, bool isComplete, {int duration = 0}) async {
+  static Future<Map<String, dynamic>?> updateProgress(dynamic origamiId, int step, bool isComplete, {int duration = 0, int boosterMultiplier = 1}) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/users/progress/$origamiId'), 
@@ -157,7 +157,8 @@ class ApiService {
         body: jsonEncode({
           'currentStep': step, 
           'isCompleted': isComplete,
-          'duration': duration
+          'duration': duration,
+          'boosterMultiplier': boosterMultiplier
         })
       ).timeout(const Duration(seconds: 10));
       
@@ -231,9 +232,23 @@ class ApiService {
     } catch (e) { return null; }
   }
 
-  static Future<Map<String, dynamic>?> completeDailyChallenge() async {
+  static Future<Map<String, dynamic>?> completeDailyChallenge({int boosterMultiplier = 1}) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/daily-challenge/complete'), headers: getHeaders());
+      final response = await http.post(
+        Uri.parse('$baseUrl/daily-challenge/complete'), 
+        headers: getHeaders(),
+        body: jsonEncode({'boosterMultiplier': boosterMultiplier}),
+      );
+      return response.statusCode == 200 ? jsonDecode(response.body) : null;
+    } catch (e) { return null; }
+  }
+
+  static Future<Map<String, dynamic>?> claimCampaign(String campId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/claim-campaign/$campId'),
+        headers: getHeaders(),
+      );
       return response.statusCode == 200 ? jsonDecode(response.body) : null;
     } catch (e) { return null; }
   }

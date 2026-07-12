@@ -235,36 +235,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     : const Text('Đăng nhập'),
               ),
               const SizedBox(height: 16),
-              
-
-              
-              // OR divider
-              Row(
-                children: [
-                  Expanded(child: Divider(color: AppTheme.border)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('HOẶC', style: TextStyle(color: AppTheme.muted, fontSize: 12, fontWeight: FontWeight.w700)),
-                  ),
-                  Expanded(child: Divider(color: AppTheme.border)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Google Button (Chỉnh sửa để không dùng account cũ đã xóa)
-              OutlinedButton.icon(
-                onPressed: _isGoogleLoading ? null : _handleGoogleLogin,
-                icon: _isGoogleLoading 
-                    ? const SizedBox(
-                        height: 18, 
-                        width: 18, 
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.indigo)
-                      )
-                    : const Text('🌐', style: TextStyle(fontSize: 18)),
-                label: Text(_isGoogleLoading ? 'Đang kết nối...' : 'Tiếp tục với Google'),
-              ),
-              
-              const SizedBox(height: 32),
               // Register link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

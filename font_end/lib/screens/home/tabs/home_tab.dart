@@ -8,6 +8,7 @@ import '../../origami/origami_detail_screen.dart';
 import '../my_learning_screen.dart';
 import '../daily_challenge_screen.dart';
 import '../admin_approval_screen.dart';
+import '../components/gamification_section.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onNavigateToExplore;
@@ -30,6 +31,8 @@ class _HomeTabState extends State<HomeTab> {
   int _pendingCount = 0;
   bool _isLoading = true;
   bool _isSearching = false;
+  List<dynamic> _allModels = [];
+  List<dynamic> _userProgressList = [];
 
   @override
   void initState() {
@@ -61,6 +64,7 @@ class _HomeTabState extends State<HomeTab> {
 
       // 2. Tải danh sách mẫu mới nhất
       final newestList = await ApiService.getOrigamiList(sortBy: 'newest');
+      _allModels = newestList;
       if (newestList.isNotEmpty) {
         _newestModel = newestList.first;
       }
@@ -68,6 +72,7 @@ class _HomeTabState extends State<HomeTab> {
       // 3. Tải thông số tiến trình học tập nếu không phải Guest
       if (!isGuest) {
         final progressList = await ApiService.getProgress();
+        _userProgressList = progressList;
         int inProgress = 0;
         int completed = 0;
         for (var prog in progressList) {
@@ -459,6 +464,12 @@ class _HomeTabState extends State<HomeTab> {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  GamificationSection(
+                    allModels: _allModels,
+                    userProgress: _userProgressList,
+                    onRefresh: _loadDashboardData,
                   ),
                   const SizedBox(height: 24),
                 ],

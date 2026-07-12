@@ -62,22 +62,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (mounted) {
         if (errorResult == null) {
-          // 2. Tự động gửi mã OTP xác nhận về email sau khi đăng ký thành công
-          await ApiService.sendOTP(email);
-          
-          if (mounted) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Tạo tài khoản thành công! Một mã OTP xác nhận đã được gửi.'),
-                backgroundColor: AppTheme.teal,
-              ),
-            );
-            // 3. Chuyển sang màn hình OTP
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => OtpScreen(email: email)),
-            );
-          }
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng ký tài khoản thành công! Vui lòng đăng nhập.'),
+              backgroundColor: AppTheme.teal,
+            ),
+          );
+          // Quay lại màn hình Đăng nhập
+          Navigator.of(context).pop();
         } else {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -213,28 +206,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     : const Text('Đăng ký'),
               ),
               const SizedBox(height: 16),
-              
-              // OR divider
-              Row(
-                children: [
-                  Expanded(child: Divider(color: AppTheme.border)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('HOẶC', style: TextStyle(color: AppTheme.muted, fontSize: 12, fontWeight: FontWeight.w700)),
-                  ),
-                  Expanded(child: Divider(color: AppTheme.border)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Google Button
-              OutlinedButton.icon(
-                onPressed: _handleRegister,
-                icon: const Text('🌐', style: TextStyle(fontSize: 18)),
-                label: const Text('Đăng ký bằng Google'),
-              ),
-              
-              const SizedBox(height: 32),
               // Back to Login link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

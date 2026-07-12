@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/api_service.dart';
@@ -10,6 +12,10 @@ import 'tabs/explore_tab.dart';
 import 'tabs/favorite_tab.dart';
 import 'tabs/profile_tab.dart';
 import 'tabs/achievement_tab.dart';
+import 'onboarding_overlay.dart';
+import 'leaderboard_screen.dart';
+import 'admin_management_screen.dart';
+import 'support_chat_screen.dart';
 
 
 // ─── Model thông báo ────────────────────────────────────────────────────────
@@ -80,12 +86,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   List<AppNotification> _notifs = [];
+  bool _showOnboarding = false;
   bool _isLoadingNotifs = false;
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
+    final key = 'has_completed_onboarding_${user.email.isNotEmpty ? user.email : "guest"}';
+    final completed = prefs.getBool(key) ?? false;
+    if (!completed) {
+      setState(() {
+        _showOnboarding = true;
+      });
+    }
   }
 
   Future<void> _loadNotifications() async {
@@ -324,8 +345,171 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProfileTab(),
     ];
 
-    return Scaffold(
+    final Widget scaffold = Scaffold(
       backgroundColor: AppTheme.bg,
+      drawer: Drawer(
+        child: Container(
+          color: AppTheme.bg,
+          child: Column(
+            children: [
+              UserAccountsDrawerHeader(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.indigo, AppTheme.indigoMid],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: ClipOval(
+                    child: user.avatarUrl.isEmpty
+                        ? Text(
+                            user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                          )
+                        : (user.avatarUrl.startsWith('http')
+                            ? Image.network(
+                                user.avatarUrl,
+                                fit: BoxFit.cover,
+                                width: 72,
+                                height: 72,
+                                errorBuilder: (c, e, s) => Text(
+                                  user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                                ),
+                              )
+                            : (user.avatarUrl.contains('/') || user.avatarUrl.contains('\\'))
+                                ? Image.file(
+                                    File(user.avatarUrl),
+                                    fit: BoxFit.cover,
+                                    width: 72,
+                                    height: 72,
+                                    errorBuilder: (c, e, s) => Text(
+                                      user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                                    ),
+                                  )
+                                : Text(user.avatarUrl, style: const TextStyle(fontSize: 28))),
+                  ),
+                ),
+                accountName: Text(
+                  user.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                accountEmail: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.email.isNotEmpty ? user.email : 'Khách (Guest)',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cấp độ: Level ${(user.xp ~/ 100) + 1} (${user.xp} XP)',
+                      style: const TextStyle(color: AppTheme.tealLight, fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _buildDrawerTile(
+                      icon: Icons.home_rounded,
+                      title: 'Trang chủ (Home)',
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 0);
+                      },
+                      isSelected: _currentIndex == 0,
+                    ),
+                    _buildDrawerTile(
+                      icon: Icons.explore_rounded,
+                      title: 'Khám phá bài học',
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 1);
+                      },
+                      isSelected: _currentIndex == 1,
+                    ),
+                    _buildDrawerTile(
+                      icon: Icons.offline_pin_rounded,
+                      title: 'Mẫu gấp ngoại tuyến (Offline)',
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 1);
+                      },
+                      isSelected: false,
+                    ),
+                    _buildDrawerTile(
+                      icon: Icons.leaderboard_rounded,
+                      title: 'Bảng xếp hạng (Leaderboard)',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+                        );
+                      },
+                      isSelected: false,
+                    ),
+                    _buildDrawerTile(
+                      icon: Icons.park_rounded,
+                      title: 'Cây kỹ năng (Skill Tree)',
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _currentIndex = 4);
+                      },
+                      isSelected: false,
+                    ),
+                    if (!isGuest)
+                      _buildDrawerTile(
+                        icon: Icons.chat_bubble_rounded,
+                        title: 'Hỗ trợ trực tuyến 24/7',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SupportChatScreen()),
+                          );
+                        },
+                        isSelected: false,
+                      ),
+                    const Divider(color: AppTheme.border),
+                    if (user.role == UserRole.admin)
+                      _buildDrawerTile(
+                        icon: Icons.admin_panel_settings_rounded,
+                        title: '⚙️ Bảng quản trị Admin',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AdminManagementScreen()),
+                          );
+                        },
+                        isSelected: false,
+                        color: AppTheme.teal,
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(color: AppTheme.border),
+              ListTile(
+                leading: const Icon(Icons.logout_rounded, color: AppTheme.red),
+                title: const Text('Đăng xuất', style: TextStyle(color: AppTheme.red, fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Navigator.pop(context);
+                  auth.logout();
+                  Navigator.of(context).pushReplacementNamed('/');
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
       appBar: _currentIndex == 0
         ? AppBar(
             title: Column(
@@ -393,6 +577,51 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Text('👤', style: TextStyle(fontSize: 20)), label: 'Hồ sơ'),
         ],
       ),
+    );
+
+    if (_showOnboarding) {
+      return Stack(
+        children: [
+          scaffold,
+          OnboardingOverlay(
+            onStepChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            onCompleted: () {
+              setState(() {
+                _showOnboarding = false;
+              });
+            },
+          ),
+        ],
+      );
+    }
+
+    return scaffold;
+  }
+
+  Widget _buildDrawerTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isSelected = false,
+    Color? color,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? AppTheme.indigo : (color ?? AppTheme.muted)),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? AppTheme.indigo : AppTheme.text,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 13.5,
+        ),
+      ),
+      selected: isSelected,
+      selectedTileColor: AppTheme.indigoLight.withOpacity(0.12),
+      onTap: onTap,
     );
   }
 }

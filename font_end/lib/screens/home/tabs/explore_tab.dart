@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
@@ -25,6 +27,7 @@ class _ExploreTabState extends State<ExploreTab> {
   int _inProgressCount = 0;
   int _completedCount = 0;
   List<dynamic> _inProgressList = [];
+  List<String> _downloadedIds = [];
   bool _isLoading = true;
 
   @override
@@ -48,6 +51,10 @@ class _ExploreTabState extends State<ExploreTab> {
     setState(() => _isLoading = true);
 
     try {
+      // Tải danh sách ID đã tải ngoại tuyến từ SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      _downloadedIds = prefs.getStringList('offline_models_ids') ?? [];
+
       // 1. Tải danh sách mẫu Origami theo bộ lọc hiện tại
       await _loadModels();
 
@@ -82,6 +89,27 @@ class _ExploreTabState extends State<ExploreTab> {
 
   // Tải danh sách mẫu khi bộ lọc danh mục hoặc từ khóa thay đổi
   Future<void> _loadModels() async {
+    final prefs = await SharedPreferences.getInstance();
+    _downloadedIds = prefs.getStringList('offline_models_ids') ?? [];
+
+    if (_selectedCategory == 'Đã tải về 📥') {
+      final List<dynamic> offlineModels = [];
+      for (var idStr in _downloadedIds) {
+        final jsonStr = prefs.getString('offline_model_detail_$idStr');
+        if (jsonStr != null) {
+          try {
+            offlineModels.add(jsonDecode(jsonStr));
+          } catch (_) {}
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _origamiModels = offlineModels;
+        });
+      }
+      return;
+    }
+
     final categoryFilter = _selectedCategory == 'Tất cả' ? null : _selectedCategory;
     final list = await ApiService.getOrigamiList(
       category: categoryFilter,
@@ -159,7 +187,7 @@ class _ExploreTabState extends State<ExploreTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                'Tất cả', 'Động vật', 'Hoa cỏ', 'Đồ vật'
+                'Tất cả', 'Động vật', 'Hoa cỏ', 'Đồ vật', 'Đã tải về 📥'
               ].map((cat) => _buildFilterChip(cat, _selectedCategory == cat)).toList(),
             ),
           ),

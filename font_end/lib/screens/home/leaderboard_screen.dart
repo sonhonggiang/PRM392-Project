@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
@@ -274,11 +275,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
             border: Border.all(color: crownColor, width: isFirst ? 4 : 2),
             color: AppTheme.bg,
           ),
-          child: Center(
-            child: Text(
-              avatarEmoji,
-              style: TextStyle(fontSize: height * 0.45),
-            ),
+          child: ClipOval(
+            child: avatarEmoji.isEmpty
+                ? Center(child: Text('👤', style: TextStyle(fontSize: height * 0.45)))
+                : (avatarEmoji.startsWith('http')
+                    ? Image.network(
+                        avatarEmoji,
+                        fit: BoxFit.cover,
+                        width: height,
+                        height: height,
+                        errorBuilder: (c, e, s) => Center(child: Text('👤', style: TextStyle(fontSize: height * 0.45))),
+                      )
+                    : (avatarEmoji.contains('/') || avatarEmoji.contains('\\'))
+                        ? Image.file(
+                            File(avatarEmoji),
+                            fit: BoxFit.cover,
+                            width: height,
+                            height: height,
+                            errorBuilder: (c, e, s) => Center(child: Text('👤', style: TextStyle(fontSize: height * 0.45))),
+                          )
+                        : Center(child: Text(avatarEmoji, style: TextStyle(fontSize: height * 0.45)))),
           ),
         ),
         const SizedBox(height: 10),
@@ -344,7 +360,27 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
             width: 38,
             height: 38,
             decoration: const BoxDecoration(color: AppTheme.bg, shape: BoxShape.circle),
-            child: Center(child: Text(avatarEmoji, style: const TextStyle(fontSize: 20))),
+            child: ClipOval(
+              child: avatarEmoji.isEmpty
+                  ? const Center(child: Text('👤', style: TextStyle(fontSize: 20)))
+                  : (avatarEmoji.startsWith('http')
+                      ? Image.network(
+                          avatarEmoji,
+                          fit: BoxFit.cover,
+                          width: 38,
+                          height: 38,
+                          errorBuilder: (c, e, s) => const Center(child: Text('👤', style: TextStyle(fontSize: 20))),
+                        )
+                      : (avatarEmoji.contains('/') || avatarEmoji.contains('\\'))
+                          ? Image.file(
+                              File(avatarEmoji),
+                              fit: BoxFit.cover,
+                              width: 38,
+                              height: 38,
+                              errorBuilder: (c, e, s) => const Center(child: Text('👤', style: TextStyle(fontSize: 20))),
+                            )
+                          : Center(child: Text(avatarEmoji, style: const TextStyle(fontSize: 20)))),
+            ),
           ),
           const SizedBox(width: 14),
 

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../core/theme.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/gamification_service.dart';
 
 
 class AdminManagementScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
   List<dynamic> _categories = [];
   List<dynamic> _users = [];
   List<dynamic> _origamiModels = [];
+  List<Map<String, dynamic>> _adminQuests = [];
+  List<Map<String, dynamic>> _adminCampaigns = [];
   bool _isLoading = true;
   final ImagePicker _picker = ImagePicker();
 
@@ -31,10 +34,14 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
     final cats = await ApiService.adminGetCategories();
     final users = await ApiService.adminGetUsers();
     final origami = await ApiService.adminGetOrigamiModels();
+    final quests = await GamificationService.getQuests();
+    final campaigns = await GamificationService.getCampaigns();
     setState(() {
       _categories = cats;
       _users = users;
       _origamiModels = origami;
+      _adminQuests = quests;
+      _adminCampaigns = campaigns;
       _isLoading = false;
     });
   }
@@ -252,6 +259,175 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
     );
   }
 
+  void _showQuestDialog({Map<String, dynamic>? quest}) {
+    final titleController = TextEditingController(text: quest?['title'] ?? '');
+    final xpController = TextEditingController(text: quest?['xp'] ?? '+50 XP');
+    final keyController = TextEditingController(text: quest?['key'] ?? 'custom');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(quest == null ? '➕ Thêm nhiệm vụ mới' : '✏️ Sửa nhiệm vụ'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Tên nhiệm vụ *'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: xpController,
+              decoration: const InputDecoration(labelText: 'Thưởng XP (ví dụ: +50 XP) *'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () async {
+              final title = titleController.text.trim();
+              final xp = xpController.text.trim();
+              if (title.isEmpty || xp.isEmpty) return;
+
+              if (quest == null) {
+                setState(() {
+                  _adminQuests.add({
+                    'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                    'title': title,
+                    'xp': xp,
+                    'key': keyController.text,
+                  });
+                });
+              } else {
+                final idx = _adminQuests.indexWhere((q) => q['id'] == quest['id']);
+                if (idx != -1) {
+                  setState(() {
+                    _adminQuests[idx] = {
+                      ..._adminQuests[idx],
+                      'title': title,
+                      'xp': xp,
+                    };
+                  });
+                }
+              }
+              await GamificationService.saveQuests(_adminQuests);
+              if (mounted) {
+                Navigator.pop(context);
+                _loadData();
+              }
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCampaignDialog({Map<String, dynamic>? campaign}) {
+    final titleController = TextEditingController(text: campaign?['title'] ?? '');
+    final descController = TextEditingController(text: campaign?['desc'] ?? '');
+    final emojiController = TextEditingController(text: campaign?['emoji'] ?? '🔥');
+    final totalController = TextEditingController(text: campaign?['total']?.toString() ?? '3');
+    final rewardController = TextEditingController(text: campaign?['reward'] ?? '+150 XP');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(campaign == null ? '➕ Thêm chiến dịch mới' : '✏️ Sửa chiến dịch'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Tên chiến dịch *'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(labelText: 'Mô tả chiến dịch *'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: emojiController,
+                      decoration: const InputDecoration(labelText: 'Emoji'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: totalController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Mục tiêu (Số mẫu)'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: rewardController,
+                decoration: const InputDecoration(labelText: 'Phần thưởng *'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () async {
+              final title = titleController.text.trim();
+              final desc = descController.text.trim();
+              final emoji = emojiController.text.trim();
+              final total = int.tryParse(totalController.text.trim()) ?? 3;
+              final reward = rewardController.text.trim();
+
+              if (title.isEmpty || desc.isEmpty || reward.isEmpty) return;
+
+              if (campaign == null) {
+                setState(() {
+                  _adminCampaigns.add({
+                    'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                    'title': title,
+                    'desc': desc,
+                    'emoji': emoji.isEmpty ? '🔥' : emoji,
+                    'total': total,
+                    'reward': reward,
+                  });
+                });
+              } else {
+                final idx = _adminCampaigns.indexWhere((c) => c['id'] == campaign['id']);
+                if (idx != -1) {
+                  setState(() {
+                    _adminCampaigns[idx] = {
+                      ..._adminCampaigns[idx],
+                      'title': title,
+                      'desc': desc,
+                      'emoji': emoji.isEmpty ? '🔥' : emoji,
+                      'total': total,
+                      'reward': reward,
+                    };
+                  });
+                }
+              }
+              await GamificationService.saveCampaigns(_adminCampaigns);
+              if (mounted) {
+                Navigator.pop(context);
+                _loadData();
+              }
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmDeleteOrigami(dynamic model) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -286,7 +462,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         backgroundColor: AppTheme.bg,
         appBar: AppBar(
@@ -295,10 +471,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
           foregroundColor: AppTheme.indigo,
           elevation: 0,
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
               Tab(icon: Icon(Icons.category_outlined, size: 18), text: 'Danh mục'),
               Tab(icon: Icon(Icons.auto_awesome_outlined, size: 18), text: 'Mẫu gấp'),
               Tab(icon: Icon(Icons.people_outline, size: 18), text: 'Người dùng'),
+              Tab(icon: Icon(Icons.stars_rounded, size: 18), text: 'Sự kiện & Nhiệm vụ'),
             ],
             labelColor: AppTheme.indigo,
             indicatorColor: AppTheme.teal,
@@ -506,6 +684,148 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                         ),
                       );
                     },
+                  ),
+
+                  // ─── Tab 4: Sự kiện & Nhiệm vụ (CRUD) ──────────────────────
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Quests Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Nhiệm vụ hàng ngày', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+                            ElevatedButton.icon(
+                              onPressed: () => _showQuestDialog(),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Thêm nhiệm vụ'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.teal,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _adminQuests.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final q = _adminQuests[index];
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppTheme.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: ListTile(
+                                leading: const CircleAvatar(
+                                  backgroundColor: AppTheme.tealLight,
+                                  child: Text('📝', style: TextStyle(fontSize: 18)),
+                                ),
+                                title: Text(q['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                                subtitle: Text('Thưởng: ${q['xp'] ?? ""}', style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, color: AppTheme.amber, size: 20),
+                                      onPressed: () => _showQuestDialog(quest: q),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: AppTheme.red, size: 20),
+                                      onPressed: () async {
+                                        setState(() {
+                                          _adminQuests.removeWhere((item) => item['id'] == q['id']);
+                                        });
+                                        await GamificationService.saveQuests(_adminQuests);
+                                        _loadData();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 28),
+
+                        // 2. Campaigns Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Chiến dịch / Sự kiện', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.indigo)),
+                            ElevatedButton.icon(
+                              onPressed: () => _showCampaignDialog(),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Thêm chiến dịch'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.amber,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _adminCampaigns.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final c = _adminCampaigns[index];
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppTheme.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: AppTheme.amber.withOpacity(0.12),
+                                  child: Text(c['emoji'] ?? '🔥', style: const TextStyle(fontSize: 18)),
+                                ),
+                                title: Text(c['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(c['desc'] ?? '', style: const TextStyle(fontSize: 11, color: AppTheme.muted), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 2),
+                                    Text('Mục tiêu: ${c['total']} mẫu • Thưởng: ${c['reward']}', style: const TextStyle(fontSize: 10, color: AppTheme.teal, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                isThreeLine: true,
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, color: AppTheme.amber, size: 20),
+                                      onPressed: () => _showCampaignDialog(campaign: c),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: AppTheme.red, size: 20),
+                                      onPressed: () async {
+                                        setState(() {
+                                          _adminCampaigns.removeWhere((item) => item['id'] == c['id']);
+                                        });
+                                        await GamificationService.saveCampaigns(_adminCampaigns);
+                                        _loadData();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

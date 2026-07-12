@@ -242,7 +242,8 @@ async function completeDailyChallenge(req, res) {
     );
 
     // 4. Cộng điểm XP thưởng và tặng 1 Huy chương ngày
-    const rewardXp = challenge.reward_xp || 100;
+    const multiplier = parseInt(req.body.boosterMultiplier) || 1;
+    const rewardXp = (challenge.reward_xp || 100) * multiplier;
     await db.query("UPDATE users SET xp = xp + ?, daily_medals = daily_medals + 1 WHERE id = ?", [rewardXp, userId]);
 
     // 5. Cập nhật Streak ngày liên tiếp của người dùng
