@@ -85,6 +85,7 @@ async function initializeDatabase() {
         category_id INT NOT NULL,
         creator_id INT NOT NULL,
         status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        xp_reward INT DEFAULT 50,
         rejection_reason TEXT DEFAULT NULL,
         rating DECIMAL(2,1) DEFAULT 0.0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

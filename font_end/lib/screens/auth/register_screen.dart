@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/api_service.dart';
+import '../home/home_screen.dart';
 import 'otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -62,15 +63,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (mounted) {
         if (errorResult == null) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đăng ký tài khoản thành công! Vui lòng đăng nhập.'),
-              backgroundColor: AppTheme.teal,
-            ),
-          );
-          // Quay lại màn hình Đăng nhập
-          Navigator.of(context).pop();
+          // 2. Tự động Đăng nhập sau khi đăng ký thành công
+          final loginError = await context.read<AuthProvider>().login(email, password);
+          
+          if (mounted) {
+            setState(() => _isLoading = false);
+            if (loginError == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Đăng ký và Đăng nhập thành công! 🎉'),
+                  backgroundColor: AppTheme.teal,
+                ),
+              );
+              // Chuyển thẳng vào Home Screen, xóa hết lịch sử chuyển trang trước đó
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Đăng ký xong nhưng không thể tự đăng nhập: $loginError'),
+                  backgroundColor: AppTheme.amber,
+                ),
+              );
+              Navigator.of(context).pop(); // Quay về Login để user tự đăng nhập
+            }
+          }
         } else {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(

@@ -352,7 +352,10 @@ class _HomeScreenState extends State<HomeScreen> {
           color: AppTheme.bg,
           child: Column(
             children: [
-              UserAccountsDrawerHeader(
+              // Header tùy chỉnh hiển thị thông tin rõ ràng và sang bên phải
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppTheme.indigo, AppTheme.indigoMid],
@@ -360,54 +363,103 @@ class _HomeScreenState extends State<HomeScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                currentAccountPicture: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: ClipOval(
-                    child: user.avatarUrl.isEmpty
-                        ? Text(
-                            user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
-                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.indigo),
-                          )
-                        : (user.avatarUrl.startsWith('http')
-                            ? Image.network(
-                                user.avatarUrl,
-                                fit: BoxFit.cover,
-                                width: 72,
-                                height: 72,
-                                errorBuilder: (c, e, s) => Text(
-                                  user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
-                                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.indigo),
-                                ),
-                              )
-                            : (user.avatarUrl.contains('/') || user.avatarUrl.contains('\\'))
-                                ? Image.file(
-                                    File(user.avatarUrl),
-                                    fit: BoxFit.cover,
-                                    width: 72,
-                                    height: 72,
-                                    errorBuilder: (c, e, s) => Text(
-                                      user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
-                                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.indigo),
-                                    ),
-                                  )
-                                : Text(user.avatarUrl, style: const TextStyle(fontSize: 28))),
-                  ),
-                ),
-                accountName: Text(
-                  user.displayName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                accountEmail: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      user.email.isNotEmpty ? user.email : 'Khách (Guest)',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    // Avatar bên trái
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          )
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 35,
+                        backgroundColor: Colors.white,
+                        child: ClipOval(
+                          child: user.avatarUrl.isEmpty
+                              ? Text(
+                                  user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                                )
+                              : (user.avatarUrl.startsWith('http')
+                                  ? Image.network(
+                                      user.avatarUrl,
+                                      fit: BoxFit.cover,
+                                      width: 70,
+                                      height: 70,
+                                      errorBuilder: (c, e, s) => Text(
+                                        user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                                      ),
+                                    )
+                                  : Image.file(
+                                      File(user.avatarUrl),
+                                      fit: BoxFit.cover,
+                                      width: 70,
+                                      height: 70,
+                                      errorBuilder: (c, e, s) => Text(
+                                        user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.indigo),
+                                      ),
+                                    )),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Cấp độ: Level ${(user.xp ~/ 100) + 1} (${user.xp} XP)',
-                      style: const TextStyle(color: AppTheme.tealLight, fontWeight: FontWeight.bold, fontSize: 11),
+                    const SizedBox(width: 16),
+                    // Thông tin người dùng hiển thị sang bên phải avatar
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            user.displayName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22, // Hiển thị tên to và rõ ràng
+                              letterSpacing: 0.5,
+                              shadows: [Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4)],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            user.email.isNotEmpty ? user.email : 'Khách (Guest)',
+                            style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 10),
+                          // Badge hiển thị Cấp độ
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white38),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.bolt_rounded, color: AppTheme.tealLight, size: 14),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Level ${(user.xp ~/ 100) + 1} • ${user.xp} XP',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

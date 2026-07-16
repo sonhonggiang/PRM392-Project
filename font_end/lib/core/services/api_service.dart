@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // IP HIỆN TẠI CỦA MÁY TÍNH: 192.168.1.7
-  static String get baseUrl => 'http://192.168.1.7:3000/api';
+  // IP HIỆN TẠI CỦA MÁY TÍNH: 10.33.61.251
+  static String get baseUrl => 'http://10.33.61.251:3000/api';
   static String? token;
 
   static Map<String, String> getHeaders() {

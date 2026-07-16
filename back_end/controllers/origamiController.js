@@ -87,6 +87,12 @@ async function createOrigami(req, res) {
     return res.status(400).json({ message: 'Vui lòng điền đầy đủ các trường thông tin và danh sách các bước gấp!' });
   }
 
+  // Kiểm tra giới hạn XP thưởng (Ví dụ: 50 - 200)
+  const finalXpReward = parseInt(xpReward) || 50;
+  if (finalXpReward < 50 || finalXpReward > 250) {
+    return res.status(400).json({ message: 'Điểm thưởng XP không hợp lệ (50 - 250)!' });
+  }
+
   const connection = await db.getConnection();
   try {
     // Bắt đầu giao dịch (Transaction)
@@ -98,9 +104,9 @@ async function createOrigami(req, res) {
     // 1. Chèn thông tin chung vào bảng origami_models
     const [modelResult] = await connection.query(
       `INSERT INTO origami_models 
-       (name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, emoji, difficulty || 'Dễ', estimatedTime, paperSize || '15x15 cm', paperType || 'Washi', categoryId, creatorId, finalStatus]
+       (name, emoji, difficulty, estimated_time, paper_size, paper_type, category_id, creator_id, status, xp_reward)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, emoji, difficulty || 'Dễ', estimatedTime, paperSize || '15x15 cm', paperType || 'Washi', categoryId, creatorId, finalStatus, xpReward || 50]
     );
 
     const origamiId = modelResult.insertId;

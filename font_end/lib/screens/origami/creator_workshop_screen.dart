@@ -142,11 +142,11 @@ class _CreatorWorkshopScreenState extends State<CreatorWorkshopScreen> {
   void _saveOrPublish(String status) async {
     if (_formKey.currentState!.validate()) {
       final auth = context.read<AuthProvider>();
-      int xpRewardLimit = 150; // Giới hạn mới
+      int xpRewardLimit = 200; // Giới hạn mặc định mới
       
       // Giả định User Top 1 hoặc XP cao có giới hạn XP thưởng cao hơn
       if (auth.currentUser.xp >= 5000) {
-        xpRewardLimit = 200;
+        xpRewardLimit = 250;
       }
       
       int requestedXp = int.tryParse(_xpRewardController.text) ?? 50;
